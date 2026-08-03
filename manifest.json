@@ -1,0 +1,9 @@
+{
+  "id": "verbatim",
+  "name": "Verbatim",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Debate card cutting: Pocket/Hat/Block/Tag structure, underline/emphasis/highlight, condense/shrink, and cite automation.",
+  "author": "Ethan Elasky",
+  "isDesktopOnly": false
+}
