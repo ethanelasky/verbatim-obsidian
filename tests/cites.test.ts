@@ -11,7 +11,7 @@ describe("formatCiteLine", () => {
       2026,
     );
     expect(out).toBe(
-      'Aaron **Hardy**, creator of Verbatim, 1-1-**3000**, "Verbatim Online Manual," https://x.com',
+      'Aaron <b>Hardy</b>, creator of Verbatim, 1-1-<b>3000</b>, "Verbatim Online Manual," https://x.com',
     );
   });
 
@@ -20,15 +20,17 @@ describe("formatCiteLine", () => {
       'Jane Doe, reporter, 3-15-2026, "News," https://x.com',
       2026,
     );
-    expect(out).toBe('Jane **Doe**, reporter, **3-15**-2026, "News," https://x.com');
+    expect(out).toBe('Jane <b>Doe</b>, reporter, <b>3-15</b>-2026, "News," https://x.com');
   });
 
-  it("re-formats an already-bolded cite idempotently", () => {
-    const once = formatCiteLine(
+  it("re-formats an already-bolded cite idempotently (either syntax)", () => {
+    const fromStars = formatCiteLine(
       'Aaron **Hardy**, creator, 1-1-**3000**, "Title," url',
       2026,
     );
-    expect(once).toBe('Aaron **Hardy**, creator, 1-1-**3000**, "Title," url');
+    expect(fromStars).toBe('Aaron <b>Hardy</b>, creator, 1-1-<b>3000</b>, "Title," url');
+    const again = formatCiteLine(fromStars!, 2026);
+    expect(again).toBe(fromStars);
   });
 
   it("picks the date before the title, not a year in the quals", () => {
@@ -36,8 +38,8 @@ describe("formatCiteLine", () => {
       'Jane Doe, PhD 1999 Harvard, 2024, "Title," url',
       2026,
     );
-    expect(out).toContain("**2024**");
-    expect(out).not.toContain("**1999**");
+    expect(out).toContain("<b>2024</b>");
+    expect(out).not.toContain("<b>1999</b>");
   });
 
   it("returns null for unparseable lines", () => {
@@ -47,10 +49,10 @@ describe("formatCiteLine", () => {
 
 describe("reformatAllCites / previousCiteLine", () => {
   const doc = [
-    "#### One",
+    "###### One",
     'A Alpha, x, 1-1-2020, "T1," u1',
     "body",
-    "#### Two",
+    "###### Two",
     'B Beta, y, 2-2-2021, "T2," u2',
     "body2",
   ].join("\n");
@@ -58,8 +60,8 @@ describe("reformatAllCites / previousCiteLine", () => {
   it("formats every cite", () => {
     const res = reformatAllCites(doc, 2026);
     expect(res.formatted).toBe(2);
-    expect(res.text).toContain("**Alpha**");
-    expect(res.text).toContain("**Beta**");
+    expect(res.text).toContain("<b>Alpha</b>");
+    expect(res.text).toContain("<b>Beta</b>");
   });
 
   it("finds the nearest previous cite", () => {
@@ -83,27 +85,27 @@ describe("buildCiteLine", () => {
 
 describe("autoNumberTags", () => {
   const doc = [
-    "### Block A",
-    "#### First tag",
+    "##### Block A",
+    "###### First tag",
     "body",
-    "#### 9. Second tag",
+    "###### 9. Second tag",
     "body",
-    "### Block B",
-    "#### Other tag",
+    "##### Block B",
+    "###### Other tag",
   ].join("\n");
 
   it("numbers per block and renumbers stale numbers", () => {
     const res = autoNumberTags(doc, 0, doc.length);
-    expect(res.text).toContain("#### 1. First tag");
-    expect(res.text).toContain("#### 2. Second tag");
-    expect(res.text).toContain("#### 1. Other tag");
+    expect(res.text).toContain("###### 1. First tag");
+    expect(res.text).toContain("###### 2. Second tag");
+    expect(res.text).toContain("###### 1. Other tag");
   });
 
   it("de-numbering strips prefixes", () => {
     const numbered = autoNumberTags(doc, 0, doc.length).text;
     const res = deNumberTags(numbered, 0, numbered.length);
-    expect(res.text).toContain("#### First tag");
-    expect(res.text).toContain("#### Second tag");
+    expect(res.text).toContain("###### First tag");
+    expect(res.text).toContain("###### Second tag");
   });
 });
 
@@ -112,7 +114,7 @@ describe("fixers", () => {
     const doc = ["**Economy strong now**", 'A B, x, 1-1-2020, "T," u', "body"].join("\n");
     const res = fixFakeTags(doc, "yellow");
     expect(res.count).toBe(1);
-    expect(res.text.startsWith("#### Economy strong now")).toBe(true);
+    expect(res.text.startsWith("###### Economy strong now")).toBe(true);
   });
 
   it("removeNonHighlightedUnderlining keeps highlighted runs", () => {

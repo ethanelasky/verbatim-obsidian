@@ -9,33 +9,38 @@ import {
 } from "../src/cardModel";
 
 const DOC = [
-  "# Uniqueness",            // 0
-  "## Economy",
-  "### Econ High Now",
-  "#### 1. Growth is strong",
-  'Aaron **Hardy**, creator of Verbatim, 1-1-**3000**, "Verbatim Online Manual," https://example.com',
+  "### Uniqueness",            // 0
+  "#### Economy",
+  "##### Econ High Now",
+  "###### 1. Growth is strong",
+  'Aaron <b>Hardy</b>, creator of Verbatim, 1-1-<b>3000</b>, "Verbatim Online Manual," https://example.com',
   "The economy is <u>growing rapidly</u> and ==will continue==.",
   "",
   "Second body paragraph here.",
-  "#### 2. AT: Recession",
+  "###### 2. AT: Recession",
   "This one is an analytic with no cite.",
-  "# Links",
+  "### Links",
   "body under links",
 ].join("\n");
 
 describe("parseHeadings", () => {
   it("finds all headings with correct levels and section ends", () => {
     const hs = parseHeadings(DOC);
-    expect(hs.map((h) => h.level)).toEqual([1, 2, 3, 4, 4, 1]);
-    // first pocket's section ends at "# Links"
-    expect(DOC.slice(hs[0].sectionEnd, hs[0].sectionEnd + 7)).toBe("# Links");
+    expect(hs.map((h) => h.level)).toEqual([3, 4, 5, 6, 6, 3]);
+    // first pocket's section ends at "### Links"
+    expect(DOC.slice(hs[0].sectionEnd, hs[0].sectionEnd + 9)).toBe("### Links");
     // first tag's section ends at the second tag
-    expect(DOC.slice(hs[3].sectionEnd, hs[3].sectionEnd + 4)).toBe("####");
+    expect(DOC.slice(hs[3].sectionEnd, hs[3].sectionEnd + 6)).toBe("######");
   });
 });
 
 describe("isCitePattern", () => {
-  it("accepts the docs one-line cite", () => {
+  it("accepts the docs one-line cite (both bold syntaxes)", () => {
+    expect(
+      isCitePattern(
+        'Aaron <b>Hardy</b>, creator of Verbatim, 1-1-<b>3000</b>, "Verbatim Online Manual," https://x.com',
+      ),
+    ).toBe(true);
     expect(
       isCitePattern(
         'Aaron **Hardy**, creator of Verbatim, 1-1-**3000**, "Verbatim Online Manual," https://x.com',
@@ -49,7 +54,7 @@ describe("isCitePattern", () => {
     expect(isCitePattern("In 2024 the economy grew by 3 percent.")).toBe(false);
   });
   it("rejects headings and plain prose", () => {
-    expect(isCitePattern("#### 1. Growth is strong")).toBe(false);
+    expect(isCitePattern("###### 1. Growth is strong")).toBe(false);
     expect(isCitePattern("The economy is growing rapidly.")).toBe(false);
   });
 });
@@ -59,7 +64,7 @@ describe("cardAt", () => {
     const bodyIdx = DOC.indexOf("The economy is");
     const card = cardAt(DOC, bodyIdx);
     expect(card).not.toBeNull();
-    expect(DOC.slice(card!.tagStart, card!.tagEnd)).toBe("#### 1. Growth is strong");
+    expect(DOC.slice(card!.tagStart, card!.tagEnd)).toBe("###### 1. Growth is strong");
     expect(card!.citeStart).not.toBeNull();
     expect(DOC.slice(card!.citeStart!, card!.citeEnd!)).toContain("Hardy");
     expect(DOC.slice(card!.bodyStart, card!.end)).toContain("Second body paragraph");
@@ -81,10 +86,10 @@ describe("resolveScope cascade", () => {
     const idx = DOC.indexOf("Second body paragraph");
     const s = resolveScope(DOC, idx, idx);
     expect(s.kind).toBe("card");
-    expect(DOC.slice(s.from, s.from + 4)).toBe("####");
+    expect(DOC.slice(s.from, s.from + 6)).toBe("######");
   });
   it("cursor on a block heading resolves to the section", () => {
-    const idx = DOC.indexOf("### Econ High Now") + 4;
+    const idx = DOC.indexOf("##### Econ High Now") + 6;
     const s = resolveScope(DOC, idx, idx);
     expect(s.kind).toBe("section");
   });
@@ -100,7 +105,7 @@ describe("bodyChunks", () => {
     const chunks = bodyChunks(DOC, 0, DOC.length);
     const texts = chunks.map((c) => DOC.slice(c.from, c.to));
     expect(texts.some((t) => t.startsWith("The economy is"))).toBe(true);
-    expect(texts.every((t) => !t.includes("####"))).toBe(true);
+    expect(texts.every((t) => !t.includes("######"))).toBe(true);
     expect(texts.every((t) => !t.includes("Hardy"))).toBe(true);
   });
 });
@@ -109,6 +114,6 @@ describe("sectionAt", () => {
   it("returns the innermost section", () => {
     const idx = DOC.indexOf("Second body paragraph");
     const h = sectionAt(DOC, idx);
-    expect(h!.level).toBe(4);
+    expect(h!.level).toBe(6);
   });
 });

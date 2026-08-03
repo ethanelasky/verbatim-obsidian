@@ -49,10 +49,64 @@ body.vb-emphasis-large .cm-content .cm-strong {
   font-size: 1.15em;
 }
 
-/* Compact Verbatim-style heading hierarchy (Pocket/Hat/Block/Tag) */
-.markdown-rendered h4,
-.markdown-source-view.mod-cm6 .cm-content .HyperMD-header-4 {
-  margin-top: 0.4em;
+/* Cite emphasis uses <b> tags (distinct from ** Emphasis), so box/large
+   emphasis modes never restyle cite names and dates. */
+.markdown-rendered b,
+.cm-content b {
+  font-weight: 600;
+}
+
+/* ---- Card file styles ----
+   Activate by adding to a note's frontmatter:
+     ---
+     cssclasses: cardfile
+     ---
+   Hierarchy: Pocket = H3, Hat = H4, Block = H5, Tag = H6. */
+
+/* Pocket (H3): large bold */
+.cardfile h3,
+.cardfile .HyperMD-header-3 .cm-header {
+  font-size: 1.45em;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Hat (H4): bold, centered, double underline */
+.cardfile h4,
+.cardfile .HyperMD-header-4 .cm-header {
+  font-size: 1.15em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-style: double;
+  text-underline-offset: 3px;
+}
+.cardfile h4,
+.cardfile .HyperMD-header-4 {
+  text-align: center;
+}
+
+/* Block (H5): bold, centered, single underline */
+.cardfile h5,
+.cardfile .HyperMD-header-5 .cm-header {
+  font-size: 1.05em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cardfile h5,
+.cardfile .HyperMD-header-5 {
+  text-align: center;
+}
+
+/* Tag (H6): body-sized bold, reads like card text */
+.cardfile h6,
+.cardfile .HyperMD-header-6 .cm-header {
+  font-size: 1em;
+  font-weight: 700;
+  text-decoration: none;
+}
+.cardfile h6 {
+  margin-top: 0.6em;
   margin-bottom: 0.1em;
 }
 

@@ -8,7 +8,7 @@ import {
 } from "../src/cutting";
 
 const CARD = [
-  "#### Tag line",
+  "###### Tag line",
   'Jane Doe, analyst, 1-1-2020, "Title," https://x.com',
   "First paragraph of evidence.",
   "",
@@ -23,7 +23,7 @@ describe("condense", () => {
     expect(res.text).toContain(
       "First paragraph of evidence. ¶ Second paragraph of evidence. ¶ Third one.",
     );
-    expect(res.text).toContain("#### Tag line");
+    expect(res.text).toContain("###### Tag line");
     expect(res.text).toContain('"Title,"');
   });
 
@@ -49,7 +49,7 @@ describe("condense", () => {
 
 describe("shrink", () => {
   const doc = [
-    "#### T",
+    "###### T",
     'A B, x, 1-1-2020, "T," u',
     "keep <u>this underlined</u> shrink the rest [ Table Omitted ] end",
   ].join("\n");

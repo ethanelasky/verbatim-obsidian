@@ -102,6 +102,7 @@ export function applyInline(
         m.u = false;
         m.b = false;
         m.sm = false;
+        m.cb = false;
       }
     }
     const ser = serialize(j.chars, opts.defaultColor);

@@ -41,6 +41,7 @@ function parseLine(line, defaultColor) {
   let u = false;
   let b = false;
   let sm = false;
+  let cb = false;
   let hl = null;
   let i = 0;
   while (i < line.length) {
@@ -52,6 +53,16 @@ function parseLine(line, defaultColor) {
     }
     if (rest.startsWith("</u>")) {
       u = false;
+      i += 4;
+      continue;
+    }
+    if (rest.startsWith("<b>")) {
+      cb = true;
+      i += 3;
+      continue;
+    }
+    if (rest.startsWith("</b>")) {
+      cb = false;
       i += 4;
       continue;
     }
@@ -91,7 +102,7 @@ function parseLine(line, defaultColor) {
       i += 2;
       continue;
     }
-    chars.push({ ch: line[i], src: i, m: { u, hl, b, sm } });
+    chars.push({ ch: line[i], src: i, m: { u, hl, b, sm, cb } });
     i++;
   }
   return chars;
@@ -105,7 +116,7 @@ function stripInline(line) {
   return plainText(parseLine(line, "yellow"));
 }
 function eqMarks(a, b) {
-  return a.u === b.u && a.b === b.b && a.sm === b.sm && a.hl === b.hl;
+  return a.u === b.u && a.b === b.b && a.sm === b.sm && a.cb === b.cb && a.hl === b.hl;
 }
 function rangeToCharIdx(chars, from, to) {
   let ci = chars.findIndex((c) => c.src >= from);
@@ -154,14 +165,15 @@ function serialize(chars, defaultColor) {
   let out = "";
   const outOf = [];
   const stack = [];
-  const openTok = (t) => t.k === "u" ? "<u>" : t.k === "b" ? "**" : t.k === "sm" ? "<small>" : t.hl === defaultColor ? "==" : `<mark class="vb-hl-${t.hl}">`;
-  const closeTok = (t) => t.k === "u" ? "</u>" : t.k === "b" ? "**" : t.k === "sm" ? "</small>" : t.hl === defaultColor ? "==" : "</mark>";
+  const openTok = (t) => t.k === "u" ? "<u>" : t.k === "b" ? "**" : t.k === "sm" ? "<small>" : t.k === "cb" ? "<b>" : t.hl === defaultColor ? "==" : `<mark class="vb-hl-${t.hl}">`;
+  const closeTok = (t) => t.k === "u" ? "</u>" : t.k === "b" ? "**" : t.k === "sm" ? "</small>" : t.k === "cb" ? "</b>" : t.hl === defaultColor ? "==" : "</mark>";
   const desired = (m) => {
     const d = [];
     if (m.u) d.push({ k: "u" });
     if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
     if (m.b) d.push({ k: "b" });
     if (m.sm) d.push({ k: "sm" });
+    if (m.cb) d.push({ k: "cb" });
     return d;
   };
   const closeDownTo = (n) => {
@@ -187,6 +199,8 @@ function serialize(chars, defaultColor) {
 }
 
 // src/cardModel.ts
+var LEVELS = { pocket: 3, hat: 4, block: 5, tag: 6 };
+var TAG_LEVEL = LEVELS.tag;
 var OMISSION_NOTES = [
   "[ Table Omitted ]",
   "[ Figure Omitted ]",
@@ -272,7 +286,7 @@ function cardAt(text, offset, headings) {
   const hs = headings ?? parseHeadings(text);
   let tag = null;
   for (const h of hs) {
-    if (h.level === 4 && h.start <= offset && offset < Math.max(h.sectionEnd, h.lineEnd + 1)) {
+    if (h.level === TAG_LEVEL && h.start <= offset && offset < Math.max(h.sectionEnd, h.lineEnd + 1)) {
       tag = h;
     }
     if (h.start > offset) break;
@@ -311,7 +325,7 @@ function cardsInRange(text, from = 0, to = text.length) {
   const hs = parseHeadings(text);
   const out = [];
   for (const h of hs) {
-    if (h.level !== 4) continue;
+    if (h.level !== TAG_LEVEL) continue;
     if (h.sectionEnd <= from || h.start >= to) continue;
     out.push(cardFromTag(text, h));
   }
@@ -335,7 +349,7 @@ function resolveScope(text, selFrom, selTo) {
   const lineText = text.slice(ls, le);
   if (isHeadingLine(lineText)) {
     const h = hs.find((x) => x.start === ls);
-    if (h && h.level < 4) {
+    if (h && h.level < TAG_LEVEL) {
       return { from: h.start, to: h.sectionEnd, kind: "section" };
     }
   }
@@ -541,6 +555,7 @@ function applyInline(text, from, to, op, opts) {
         m.u = false;
         m.b = false;
         m.sm = false;
+        m.cb = false;
       }
     }
     const ser = serialize(j.chars, opts.defaultColor);
@@ -665,9 +680,9 @@ function formatCiteLine(line, currentYear) {
   if (mdY) {
     const yr = parseInt(mdY[2], 10);
     const yrFull = mdY[2].length === 2 ? 2e3 + yr : yr;
-    rep = yrFull === currentYear ? `**${mdY[1]}**-${mdY[2]}` : `${mdY[1]}-**${mdY[2]}**`;
+    rep = yrFull === currentYear ? `<b>${mdY[1]}</b>-${mdY[2]}` : `${mdY[1]}-<b>${mdY[2]}</b>`;
   } else {
-    rep = `**${token}**`;
+    rep = `<b>${token}</b>`;
   }
   let out = plain.slice(0, dm.index) + rep + plain.slice(dm.index + token.length);
   const seg = out.slice(0, commaIdx);
@@ -675,7 +690,7 @@ function formatCiteLine(line, currentYear) {
   const last = words[words.length - 1];
   if (last) {
     const pos = seg.lastIndexOf(last);
-    if (pos >= 0) out = out.slice(0, pos) + `**${last}**` + out.slice(pos + last.length);
+    if (pos >= 0) out = out.slice(0, pos) + `<b>${last}</b>` + out.slice(pos + last.length);
   }
   return out;
 }
@@ -882,10 +897,10 @@ function renumberTags(text, from, to, number) {
   const counters = /* @__PURE__ */ new Map();
   const edits = [];
   for (const h of hs) {
-    if (h.level !== 4 || h.start < from || h.start >= to) continue;
+    if (h.level !== 6 || h.start < from || h.start >= to) continue;
     let parentKey = -1;
     for (let i = h.index - 1; i >= 0; i--) {
-      if (hs[i].level < 4) {
+      if (hs[i].level < 6) {
         parentKey = hs[i].index;
         break;
       }
@@ -895,9 +910,9 @@ function renumberTags(text, from, to, number) {
     if (number) {
       const n = (counters.get(parentKey) ?? 0) + 1;
       counters.set(parentKey, n);
-      newLine = `#### ${n}. ${bare}`;
+      newLine = `###### ${n}. ${bare}`;
     } else {
-      newLine = `#### ${bare}`;
+      newLine = `###### ${bare}`;
     }
     if (newLine !== text.slice(h.start, h.lineEnd)) {
       edits.push({ start: h.start, end: h.lineEnd, line: newLine });
@@ -947,11 +962,11 @@ function fixFakeTags(text, defaultColor) {
     if (nonWs.length === 0) return null;
     const plain = plainText(chars).trim();
     if (plain.length > 200) return null;
-    const fullyBold = nonWs.every((c) => c.m.b);
-    const startsBold = nonWs[0].m.b;
+    const fullyBold = nonWs.every((c) => c.m.b || c.m.cb);
+    const startsBold = nonWs[0].m.b || nonWs[0].m.cb;
     const next = nextNonBlank(idx);
     const aboveCite = next !== null && isCitePattern(next);
-    if (fullyBold || startsBold && aboveCite) return `#### ${plain}`;
+    if (fullyBold || startsBold && aboveCite) return `###### ${plain}`;
     return null;
   });
 }
@@ -979,7 +994,7 @@ function convertToDefaultStyles(text) {
     return rep;
   });
   let out = text;
-  out = sub(out, /<\/?(?:strong|b)\s*>/gi, "**");
+  out = sub(out, /<\/?strong\s*>/gi, "**");
   out = sub(out, /<\/?(?:em|i)\s*>/gi, "");
   out = sub(out, /__/g, "**");
   out = sub(out, /&nbsp;/g, " ");
@@ -988,7 +1003,7 @@ function convertToDefaultStyles(text) {
     count++;
     return "\n";
   });
-  out = sub(out, /<\/?(?!(?:u|small|mark)[\s>/])[a-zA-Z][^>\n]*>/g, "");
+  out = sub(out, /<\/?(?!(?:u|small|mark|b)[\s>/])[a-zA-Z][^>\n]*>/g, "");
   const fixed = mapLines(out, (t) => {
     if (!/[“”‘’]/.test(t)) return null;
     if (!isCitePattern(t)) return null;
@@ -1113,7 +1128,7 @@ function similarRanges(text, offset, defaultColor) {
   }
   if (!target) return null;
   const M = target.m;
-  if (!M.u && !M.b && !M.sm && M.hl === null) return null;
+  if (!M.u && !M.b && !M.sm && !M.cb && M.hl === null) return null;
   const out = [];
   for (const l of lines) {
     if (l.text.trim() === "" || isHeadingLine(l.text)) continue;
@@ -1406,19 +1421,19 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       const res = setHeadingLevel(text, f, t, level);
       if (res) this.applyNewText(ed, text, res.text, [res.to, res.to]);
     };
-    cmd("pocket", "Pocket (heading 1)", heading(1), [
+    cmd("pocket", "Pocket (heading 3)", heading(3), [
       { modifiers: [], key: "F4" },
       { modifiers: ["Mod", "Alt"], key: "4" }
     ]);
-    cmd("hat", "Hat (heading 2)", heading(2), [
+    cmd("hat", "Hat (heading 4)", heading(4), [
       { modifiers: [], key: "F5" },
       { modifiers: ["Mod", "Alt"], key: "5" }
     ]);
-    cmd("block", "Block (heading 3)", heading(3), [
+    cmd("block", "Block (heading 5)", heading(5), [
       { modifiers: [], key: "F6" },
       { modifiers: ["Mod", "Alt"], key: "6" }
     ]);
-    cmd("tag", "Tag (heading 4)", heading(4), [
+    cmd("tag", "Tag (heading 6)", heading(6), [
       { modifiers: [], key: "F7" },
       { modifiers: ["Mod", "Alt"], key: "7" }
     ]);
@@ -1706,7 +1721,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       if (t > f) range = [f, t];
       else if (f === 0) range = [0, text.length];
       else {
-        const sec = enclosingSection(text, f, 3);
+        const sec = enclosingSection(text, f, 5);
         range = sec ? [sec.start, sec.sectionEnd] : [0, text.length];
       }
       const res = number ? autoNumberTags(text, range[0], range[1]) : deNumberTags(text, range[0], range[1]);

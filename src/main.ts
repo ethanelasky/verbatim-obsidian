@@ -247,19 +247,19 @@ export default class VerbatimPlugin extends Plugin {
       const res = setHeadingLevel(text, f, t, level);
       if (res) this.applyNewText(ed, text, res.text, [res.to, res.to]);
     };
-    cmd("pocket", "Pocket (heading 1)", heading(1), [
+    cmd("pocket", "Pocket (heading 3)", heading(3), [
       { modifiers: [], key: "F4" },
       { modifiers: ["Mod", "Alt"], key: "4" },
     ]);
-    cmd("hat", "Hat (heading 2)", heading(2), [
+    cmd("hat", "Hat (heading 4)", heading(4), [
       { modifiers: [], key: "F5" },
       { modifiers: ["Mod", "Alt"], key: "5" },
     ]);
-    cmd("block", "Block (heading 3)", heading(3), [
+    cmd("block", "Block (heading 5)", heading(5), [
       { modifiers: [], key: "F6" },
       { modifiers: ["Mod", "Alt"], key: "6" },
     ]);
-    cmd("tag", "Tag (heading 4)", heading(4), [
+    cmd("tag", "Tag (heading 6)", heading(6), [
       { modifiers: [], key: "F7" },
       { modifiers: ["Mod", "Alt"], key: "7" },
     ]);
@@ -564,7 +564,7 @@ export default class VerbatimPlugin extends Plugin {
       if (t > f) range = [f, t];
       else if (f === 0) range = [0, text.length];
       else {
-        const sec = enclosingSection(text, f, 3);
+        const sec = enclosingSection(text, f, 5);
         range = sec ? [sec.start, sec.sectionEnd] : [0, text.length];
       }
       const res = number

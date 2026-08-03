@@ -122,19 +122,19 @@ function renumberTags(
   const counters = new Map<number, number>();
   const edits: { start: number; end: number; line: string }[] = [];
   for (const h of hs) {
-    if (h.level !== 4 || h.start < from || h.start >= to) continue;
+    if (h.level !== 6 || h.start < from || h.start >= to) continue;
     let parentKey = -1;
     for (let i = h.index - 1; i >= 0; i--) {
-      if (hs[i].level < 4) { parentKey = hs[i].index; break; }
+      if (hs[i].level < 6) { parentKey = hs[i].index; break; }
     }
     const bare = h.text.replace(/^\d+\.[ \t]+/, "");
     let newLine: string;
     if (number) {
       const n = (counters.get(parentKey) ?? 0) + 1;
       counters.set(parentKey, n);
-      newLine = `#### ${n}. ${bare}`;
+      newLine = `###### ${n}. ${bare}`;
     } else {
-      newLine = `#### ${bare}`;
+      newLine = `###### ${bare}`;
     }
     if (newLine !== text.slice(h.start, h.lineEnd)) {
       edits.push({ start: h.start, end: h.lineEnd, line: newLine });

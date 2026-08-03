@@ -27,6 +27,8 @@ export interface CharMarks {
   hl: string | null;
   b: boolean;
   sm: boolean;
+  /** cite emphasis: <b>…</b>, distinct from body Emphasis (**…**) */
+  cb: boolean;
 }
 
 export interface PChar {
@@ -43,12 +45,15 @@ export function parseLine(line: string, defaultColor: string): PChar[] {
   let u = false;
   let b = false;
   let sm = false;
+  let cb = false;
   let hl: string | null = null;
   let i = 0;
   while (i < line.length) {
     const rest = line.slice(i);
     if (rest.startsWith("<u>")) { u = true; i += 3; continue; }
     if (rest.startsWith("</u>")) { u = false; i += 4; continue; }
+    if (rest.startsWith("<b>")) { cb = true; i += 3; continue; }
+    if (rest.startsWith("</b>")) { cb = false; i += 4; continue; }
     if (rest.startsWith("<small>")) { sm = true; i += 7; continue; }
     if (rest.startsWith("</small>")) { sm = false; i += 8; continue; }
     const mo = MARK_OPEN.exec(rest);
@@ -57,7 +62,7 @@ export function parseLine(line: string, defaultColor: string): PChar[] {
     if (rest.startsWith("</mark>")) { hl = null; i += 7; continue; }
     if (rest.startsWith("**")) { b = !b; i += 2; continue; }
     if (rest.startsWith("==")) { hl = hl === null ? defaultColor : null; i += 2; continue; }
-    chars.push({ ch: line[i], src: i, m: { u, hl, b, sm } });
+    chars.push({ ch: line[i], src: i, m: { u, hl, b, sm, cb } });
     i++;
   }
   return chars;
@@ -75,7 +80,7 @@ export function stripInline(line: string): string {
 }
 
 export function eqMarks(a: CharMarks, b: CharMarks): boolean {
-  return a.u === b.u && a.b === b.b && a.sm === b.sm && a.hl === b.hl;
+  return a.u === b.u && a.b === b.b && a.sm === b.sm && a.cb === b.cb && a.hl === b.hl;
 }
 
 /**
@@ -128,7 +133,7 @@ function clearMark(c: PChar, key: "b" | "hl"): void {
 }
 
 interface StackTok {
-  k: "u" | "hl" | "b" | "sm";
+  k: "u" | "hl" | "b" | "sm" | "cb";
   hl?: string;
 }
 
@@ -148,11 +153,13 @@ export function serialize(chars: PChar[], defaultColor: string): Serialized {
     t.k === "u" ? "<u>"
     : t.k === "b" ? "**"
     : t.k === "sm" ? "<small>"
+    : t.k === "cb" ? "<b>"
     : t.hl === defaultColor ? "==" : `<mark class="vb-hl-${t.hl}">`;
   const closeTok = (t: StackTok): string =>
     t.k === "u" ? "</u>"
     : t.k === "b" ? "**"
     : t.k === "sm" ? "</small>"
+    : t.k === "cb" ? "</b>"
     : t.hl === defaultColor ? "==" : "</mark>";
 
   const desired = (m: CharMarks): StackTok[] => {
@@ -161,6 +168,7 @@ export function serialize(chars: PChar[], defaultColor: string): Serialized {
     if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
     if (m.b) d.push({ k: "b" });
     if (m.sm) d.push({ k: "sm" });
+    if (m.cb) d.push({ k: "cb" });
     return d;
   };
 

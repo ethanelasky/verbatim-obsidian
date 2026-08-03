@@ -37,6 +37,10 @@ export interface Line {
 
 export const PILCROW = "¶";
 
+/** Pocket/Hat/Block/Tag heading levels (H3–H6). */
+export const LEVELS = { pocket: 3, hat: 4, block: 5, tag: 6 } as const;
+export const TAG_LEVEL = LEVELS.tag;
+
 export const OMISSION_NOTES = [
   "[ Table Omitted ]",
   "[ Figure Omitted ]",
@@ -154,7 +158,7 @@ export function cardAt(
   const hs = headings ?? parseHeadings(text);
   let tag: Heading | null = null;
   for (const h of hs) {
-    if (h.level === 4 && h.start <= offset && offset < Math.max(h.sectionEnd, h.lineEnd + 1)) {
+    if (h.level === TAG_LEVEL && h.start <= offset && offset < Math.max(h.sectionEnd, h.lineEnd + 1)) {
       tag = h;
     }
     if (h.start > offset) break;
@@ -200,7 +204,7 @@ export function cardsInRange(
   const hs = parseHeadings(text);
   const out: Card[] = [];
   for (const h of hs) {
-    if (h.level !== 4) continue;
+    if (h.level !== TAG_LEVEL) continue;
     if (h.sectionEnd <= from || h.start >= to) continue;
     out.push(cardFromTag(text, h));
   }
@@ -238,7 +242,7 @@ export function resolveScope(text: string, selFrom: number, selTo: number): Scop
   const lineText = text.slice(ls, le);
   if (isHeadingLine(lineText)) {
     const h = hs.find((x) => x.start === ls);
-    if (h && h.level < 4) {
+    if (h && h.level < TAG_LEVEL) {
       return { from: h.start, to: h.sectionEnd, kind: "section" };
     }
   }

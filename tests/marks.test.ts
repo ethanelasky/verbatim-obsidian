@@ -39,7 +39,7 @@ describe("parseLine / serialize round trip", () => {
 });
 
 describe("applyInline", () => {
-  const doc = "#### Tag\ncite line stays\nplain body text here";
+  const doc = "###### Tag\ncite line stays\nplain body text here";
 
   it("toggles underline on and off (idempotent toggle)", () => {
     const from = doc.indexOf("body");
@@ -64,7 +64,7 @@ describe("applyInline", () => {
       currentColor: DC,
       coupleBold: false,
     });
-    expect(res!.text).toContain("#### Tag");
+    expect(res!.text).toContain("###### Tag");
     expect(res!.text).not.toContain("<u>#");
   });
 
@@ -78,14 +78,14 @@ describe("applyInline", () => {
     expect(res!.text).toContain('<mark class="vb-hl-green">plain</mark>');
   });
 
-  it("clear formatting strips u/b/sm but keeps highlights", () => {
-    const marked = "a <u>==hi== **there**</u> <small>tiny</small>";
+  it("clear formatting strips u/b/sm/cite-bold but keeps highlights", () => {
+    const marked = "a <u>==hi== **there**</u> <small>tiny</small> <b>name</b>";
     const res = applyInline(marked, 0, marked.length, "clear", {
       defaultColor: DC,
       currentColor: DC,
       coupleBold: false,
     });
-    expect(res!.text).toBe("a ==hi== there tiny");
+    expect(res!.text).toBe("a ==hi== there tiny name");
   });
 
   it("underline couples bold when configured", () => {

@@ -49,17 +49,19 @@ Evidence lives in a small number of **large Markdown notes** (one per topic/file
 
 | Level | Verbatim name | Markdown | Role |
 |---|---|---|---|
-| 1 | **Pocket** | `#` | Major section of a file |
-| 2 | **Hat** | `##` | Subsection; groups similar blocks |
-| 3 | **Block** | `###` | One argument — a card or group of cards |
-| 4 | **Tag** | `####` | The tag (claim) of an individual card |
+| 3 | **Pocket** | `###` | Major section of a file |
+| 4 | **Hat** | `####` | Subsection; groups similar blocks |
+| 5 | **Block** | `#####` | One argument — a card or group of cards |
+| 6 | **Tag** | `######` | The tag (claim) of an individual card |
+
+(v0.2 revision: shifted from H1–H4 to H3–H6, leaving H1/H2 free for ordinary note structure.)
 
 Rules carried over from Verbatim:
 
 - Not all four levels are required; structure follows content complexity.
-- **Tag is always H4** regardless of whether Pocket/Hat/Block levels are present above it. This is what lets automation find cards unambiguously. (Deviation from Markdown convention of contiguous heading levels is accepted and intentional.)
+- **Tag is always H6** regardless of whether Pocket/Hat/Block levels are present above it. This is what lets automation find cards unambiguously. (Deviation from Markdown convention of contiguous heading levels is accepted and intentional.)
 - No blank heading paragraphs as spacers. The "Remove Blanks" fixer enforces this.
-- H5/H6 are reserved/unused; the fixers may flatten them to H4.
+- Card files opt into Verbatim heading styling with `cssclasses: cardfile` in frontmatter; the plugin CSS scopes all heading looks (Pocket large bold; Hat bold centered double-underline; Block bold centered underline; Tag body-sized bold) to that class.
 
 ### 2.3 Card contract
 
@@ -107,7 +109,7 @@ The five Verbatim character styles map to Markdown/HTML as follows. This is the 
 | **Emphasis** | `**…**` | Native Markdown bold, restyled by plugin CSS (box/bold/larger per setting) |
 | **Highlight** (default color) | `==…==` | Native Obsidian highlight; color themed by plugin CSS |
 | **Highlight** (non-default color) | `<mark class="vb-hl-COLOR">…</mark>` | Plugin CSS; COLOR ∈ {yellow, green, cyan, magenta, blue, gray, orange} |
-| **Cite emphasis** | `**…**` on the name/date tokens of a cite line | Cite lines are identified positionally (§2.3), so bold is unambiguous there |
+| **Cite emphasis** | `<b>…</b>` on the name/date tokens of a cite line | Native HTML bold; distinct from `**` Emphasis so emphasis rendering modes (box/large) never restyle cites (v0.2 revision) |
 | **Shrunk text** (from Shrink) | `<small>…</small>` | Native HTML, further reduced by plugin CSS |
 | **Pilcrow** (from Condense) | literal `¶` character surrounded by single spaces | Plain text |
 

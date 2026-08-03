@@ -56,11 +56,11 @@ export function fixFakeTags(text: string, defaultColor: string): FixResult {
     if (nonWs.length === 0) return null;
     const plain = plainText(chars).trim();
     if (plain.length > 200) return null;
-    const fullyBold = nonWs.every((c) => c.m.b);
-    const startsBold = nonWs[0].m.b;
+    const fullyBold = nonWs.every((c) => c.m.b || c.m.cb);
+    const startsBold = nonWs[0].m.b || nonWs[0].m.cb;
     const next = nextNonBlank(idx);
     const aboveCite = next !== null && isCitePattern(next);
-    if (fullyBold || (startsBold && aboveCite)) return `#### ${plain}`;
+    if (fullyBold || (startsBold && aboveCite)) return `###### ${plain}`;
     return null;
   });
 }
@@ -96,7 +96,7 @@ export function convertToDefaultStyles(text: string): FixResult {
       return rep;
     });
   let out = text;
-  out = sub(out, /<\/?(?:strong|b)\s*>/gi, "**");
+  out = sub(out, /<\/?strong\s*>/gi, "**");
   out = sub(out, /<\/?(?:em|i)\s*>/gi, "");
   out = sub(out, /__/g, "**");
   out = sub(out, /&nbsp;/g, " ");
@@ -105,8 +105,8 @@ export function convertToDefaultStyles(text: string): FixResult {
     count++;
     return "\n";
   });
-  // strip any HTML tag that is not part of the vocabulary (u/small/mark)
-  out = sub(out, /<\/?(?!(?:u|small|mark)[\s>/])[a-zA-Z][^>\n]*>/g, "");
+  // strip any HTML tag that is not part of the vocabulary (u/small/mark/b)
+  out = sub(out, /<\/?(?!(?:u|small|mark|b)[\s>/])[a-zA-Z][^>\n]*>/g, "");
   // straighten curly quotes on cite lines
   const fixed = mapLines(out, (t) => {
     if (!/[“”‘’]/.test(t)) return null;
@@ -252,7 +252,7 @@ export function similarRanges(
   }
   if (!target) return null;
   const M = target.m;
-  if (!M.u && !M.b && !M.sm && M.hl === null) return null;
+  if (!M.u && !M.b && !M.sm && !M.cb && M.hl === null) return null;
 
   const out: [number, number][] = [];
   for (const l of lines) {

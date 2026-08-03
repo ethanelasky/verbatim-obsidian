@@ -36,10 +36,10 @@ export function formatCiteLine(line: string, currentYear: number): string | null
     const yrFull = mdY[2].length === 2 ? 2000 + yr : yr;
     rep =
       yrFull === currentYear
-        ? `**${mdY[1]}**-${mdY[2]}`
-        : `${mdY[1]}-**${mdY[2]}**`;
+        ? `<b>${mdY[1]}</b>-${mdY[2]}`
+        : `${mdY[1]}-<b>${mdY[2]}</b>`;
   } else {
-    rep = `**${token}**`;
+    rep = `<b>${token}</b>`;
   }
   let out = plain.slice(0, dm.index) + rep + plain.slice(dm.index + token.length);
 
@@ -49,7 +49,7 @@ export function formatCiteLine(line: string, currentYear: number): string | null
   const last = words[words.length - 1];
   if (last) {
     const pos = seg.lastIndexOf(last);
-    if (pos >= 0) out = out.slice(0, pos) + `**${last}**` + out.slice(pos + last.length);
+    if (pos >= 0) out = out.slice(0, pos) + `<b>${last}</b>` + out.slice(pos + last.length);
   }
   return out;
 }
