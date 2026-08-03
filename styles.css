@@ -39,6 +39,7 @@ body.vb-default-hl-orange  { --text-highlight-bg: #ffb74d; }
    semantics: bold in body text IS Emphasis). */
 body.vb-emphasis-box .markdown-rendered strong,
 body.vb-emphasis-box .cm-content .cm-strong {
+  font-weight: normal;
   outline: 1px solid currentColor;
   outline-offset: 0px;
   padding: 0 1px;
