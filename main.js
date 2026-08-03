@@ -1040,9 +1040,13 @@ function removeBlanks(text) {
     count++;
     return "";
   });
-  out = out.replace(/\n{3,}/g, () => {
+  out = out.replace(/\n[ \t]*(?=\n)/g, () => {
     count++;
-    return "\n\n";
+    return "";
+  });
+  out = out.replace(/^[ \t]*\n/, () => {
+    count++;
+    return "";
   });
   return { text: out, count };
 }

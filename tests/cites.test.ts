@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatCiteLine, previousCiteLine, reformatAllCites } from "../src/cites";
 import { buildCiteLine, formatDateMDY } from "../src/citeExtract";
 import { autoNumberTags, deNumberTags } from "../src/automation";
-import { fixFakeTags, removeNonHighlightedUnderlining } from "../src/fixers";
+import { fixFakeTags, removeBlanks, removeNonHighlightedUnderlining } from "../src/fixers";
 
 describe("formatCiteLine", () => {
   it("bolds last name and year for a non-current-year cite (docs example)", () => {
@@ -115,6 +115,12 @@ describe("fixers", () => {
     const res = fixFakeTags(doc, "yellow");
     expect(res.count).toBe(1);
     expect(res.text.startsWith("###### Economy strong now")).toBe(true);
+  });
+
+  it("removeBlanks deletes single and consecutive blank lines", () => {
+    expect(removeBlanks("Hello\n\nMy name is").text).toBe("Hello\nMy name is");
+    expect(removeBlanks("a\n\n\n\nb\n\nc").text).toBe("a\nb\nc");
+    expect(removeBlanks("###### \nbody\n\nmore").text).toBe("body\nmore");
   });
 
   it("removeNonHighlightedUnderlining keeps highlighted runs", () => {

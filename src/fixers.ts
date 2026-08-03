@@ -116,16 +116,22 @@ export function convertToDefaultStyles(text: string): FixResult {
   return { text: fixed.text, count: count + fixed.count };
 }
 
-/** Delete empty heading lines and collapse extra blank lines. */
+/** Delete blank lines and empty heading lines (Verbatim: empty paragraphs). */
 export function removeBlanks(text: string): FixResult {
   let count = 0;
   let out = text.replace(/^#{1,6}[ \t]*$\n?/gm, () => {
     count++;
     return "";
   });
-  out = out.replace(/\n{3,}/g, () => {
+  // each blank (whitespace-only) line: a newline + spaces followed by another
+  // newline; the lookahead keeps consecutive blanks collapsing fully
+  out = out.replace(/\n[ \t]*(?=\n)/g, () => {
     count++;
-    return "\n\n";
+    return "";
+  });
+  out = out.replace(/^[ \t]*\n/, () => {
+    count++;
+    return "";
   });
   return { text: out, count };
 }
