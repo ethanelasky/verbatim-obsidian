@@ -299,7 +299,7 @@ export default class VerbatimPlugin extends Plugin {
         const res = deleteSection(text, f);
         if (res) this.applyNewText(ed, text, res.text, [res.cursor, res.cursor]);
       },
-      [{ modifiers: ["Mod", "Alt"], key: "ArrowLeft" }],
+      [{ modifiers: ["Mod", "Alt"], key: "Backspace" }],
     );
 
     // ---- Cutting ----
@@ -383,7 +383,9 @@ export default class VerbatimPlugin extends Plugin {
       { modifiers: ["Alt"], key: "F3" },
       { modifiers: ["Mod"], key: "8" },
     ]);
-    cmd("shrink-all", "Shrink all cards in document", shrink("shrink", true));
+    cmd("shrink-all", "Shrink all cards in document", shrink("shrink", true), [
+      { modifiers: ["Mod", "Alt", "Shift"], key: "8" },
+    ]);
     cmd("unshrink-all", "Unshrink all cards in document", shrink("unshrink", true));
 
     // ---- Inline styles ----
@@ -404,14 +406,24 @@ export default class VerbatimPlugin extends Plugin {
       { modifiers: [], key: "F12" },
       { modifiers: ["Mod", "Alt"], key: "=" },
     ]);
-    cmd("underline-mode", "Toggle underline mode", () => {
-      this.underlineMode = !this.underlineMode;
-      this.updateStatus();
-      new Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
-    });
-    cmd("set-highlight-color", "Set highlight color", () => {
-      new HlColorModal(this.app, this).open();
-    });
+    cmd(
+      "underline-mode",
+      "Toggle underline mode",
+      () => {
+        this.underlineMode = !this.underlineMode;
+        this.updateStatus();
+        new Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
+      },
+      [{ modifiers: ["Mod", "Shift"], key: "U" }],
+    );
+    cmd(
+      "set-highlight-color",
+      "Set highlight color",
+      () => {
+        new HlColorModal(this.app, this).open();
+      },
+      [{ modifiers: ["Mod", "Shift"], key: "C" }],
+    );
 
     // ---- Cites ----
     cmd(
@@ -464,12 +476,17 @@ export default class VerbatimPlugin extends Plugin {
         { modifiers: ["Mod", "Alt"], key: "8" },
       ],
     );
-    cmd("reformat-all-cites", "Reformat all cites", (ed) => {
-      const text = ed.getValue();
-      const res = reformatAllCites(text, this.currentYear());
-      if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-      new Notice(`Cites: ${res.formatted} formatted, ${res.skipped} skipped`);
-    });
+    cmd(
+      "reformat-all-cites",
+      "Reformat all cites",
+      (ed) => {
+        const text = ed.getValue();
+        const res = reformatAllCites(text, this.currentYear());
+        if (res.text !== text) this.applyNewText(ed, text, res.text, null);
+        new Notice(`Cites: ${res.formatted} formatted, ${res.skipped} skipped`);
+      },
+      [{ modifiers: ["Mod", "Shift"], key: "8" }],
+    );
     cmd(
       "duplicate-cite",
       "Duplicate previous cite",
@@ -541,12 +558,17 @@ export default class VerbatimPlugin extends Plugin {
       },
       [{ modifiers: ["Mod", "Alt"], key: "F10" }],
     );
-    cmd("standardize-highlighting", "Standardize highlighting", (ed) => {
-      const text = ed.getValue();
-      const res = standardizeHighlighting(text, this.settings.currentHl, null, this.settings.defaultHl);
-      if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-      new Notice(`Standardized highlighting on ${res.count} line(s)`);
-    });
+    cmd(
+      "standardize-highlighting",
+      "Standardize highlighting",
+      (ed) => {
+        const text = ed.getValue();
+        const res = standardizeHighlighting(text, this.settings.currentHl, null, this.settings.defaultHl);
+        if (res.text !== text) this.applyNewText(ed, text, res.text, null);
+        new Notice(`Standardized highlighting on ${res.count} line(s)`);
+      },
+      [{ modifiers: ["Mod", "Shift"], key: "H" }],
+    );
     cmd(
       "standardize-highlighting-exception",
       "Standardize highlighting (with exception)",
@@ -561,6 +583,7 @@ export default class VerbatimPlugin extends Plugin {
         if (res.text !== text) this.applyNewText(ed, text, res.text, null);
         new Notice(`Standardized highlighting on ${res.count} line(s)`);
       },
+      [{ modifiers: ["Mod", "Alt", "Shift"], key: "H" }],
     );
 
     const numberCmd = (number: boolean) => (ed: Editor) => {
@@ -582,7 +605,9 @@ export default class VerbatimPlugin extends Plugin {
     cmd("auto-number-tags", "Auto number tags", numberCmd(true), [
       { modifiers: ["Mod", "Shift"], key: "3" },
     ]);
-    cmd("de-number-tags", "De-number tags", numberCmd(false));
+    cmd("de-number-tags", "De-number tags", numberCmd(false), [
+      { modifiers: ["Mod", "Alt", "Shift"], key: "3" },
+    ]);
 
     // ---- Fixers ----
     const fix = (label: string, fn: (text: string) => FixResult) => (ed: Editor) => {
@@ -597,14 +622,20 @@ export default class VerbatimPlugin extends Plugin {
       "fix-formatting-gaps",
       "Fix formatting gaps",
       fix("Fix formatting gaps", (t) => fixFormattingGaps(t, hl())),
+      [{ modifiers: ["Mod", "Shift"], key: "G" }],
     );
     cmd(
       "convert-default-styles",
       "Convert to default styles",
       fix("Convert to default styles", convertToDefaultStyles),
+      [{ modifiers: ["Mod", "Alt", "Shift"], key: "C" }],
     );
-    cmd("remove-blanks", "Remove blanks", fix("Remove blanks", removeBlanks));
-    cmd("remove-pilcrows", "Remove pilcrows", fix("Remove pilcrows", removePilcrows));
+    cmd("remove-blanks", "Remove blanks", fix("Remove blanks", removeBlanks), [
+      { modifiers: ["Mod", "Shift"], key: "B" },
+    ]);
+    cmd("remove-pilcrows", "Remove pilcrows", fix("Remove pilcrows", removePilcrows), [
+      { modifiers: ["Mod", "Shift"], key: "P" },
+    ]);
     cmd("remove-hyperlinks", "Remove hyperlinks", fix("Remove hyperlinks", removeHyperlinks));
     cmd(
       "remove-emphasis",
