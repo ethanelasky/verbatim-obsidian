@@ -63,21 +63,17 @@ body.vb-emphasis-large .cm-content .cm-strong {
      ---
    Hierarchy: Pocket = H2, Hat = H3, Block = H5, Tag = H6 (H4 reserved). */
 
-/* Pocket (H2): large bold in a border box (Verbatim pocket style) */
+/* Pocket (H2): large bold, centered in a full-width border box */
 .cardfile h2,
 .cardfile .HyperMD-header-2 .cm-header {
-  font-size: 1.3em;
+  font-size: 1.5em;
   font-weight: 700;
   text-decoration: none;
-  border: 2px solid currentColor;
-  padding: 0.05em 0.35em;
 }
-.cardfile h2 {
-  display: table; /* shrink-to-fit so the border hugs the text */
-  margin-left: auto;
-  margin-right: auto;
-}
+.cardfile h2,
 .cardfile .HyperMD-header-2 {
+  border: 2px solid currentColor;
+  padding: 0.3em 0.4em;
   text-align: center;
 }
 
