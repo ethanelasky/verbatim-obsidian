@@ -73,7 +73,12 @@ body.vb-emphasis-large .cm-content .cm-strong {
   padding: 0.05em 0.35em;
 }
 .cardfile h2 {
-  display: inline-block;
+  display: table; /* shrink-to-fit so the border hugs the text */
+  margin-left: auto;
+  margin-right: auto;
+}
+.cardfile .HyperMD-header-2 {
+  text-align: center;
 }
 
 /* Hat (H3): bold, centered, double underline */
