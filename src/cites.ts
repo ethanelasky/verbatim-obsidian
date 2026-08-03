@@ -82,6 +82,35 @@ export function reformatAllCites(
   return { text: out, formatted, skipped };
 }
 
+/**
+ * Selection-mode reformat: format every cite-pattern line in the text,
+ * without requiring an enclosing tag (used when running on a selection).
+ */
+export function reformatCiteLines(
+  text: string,
+  currentYear: number,
+): { text: string; formatted: number; skipped: number } {
+  let formatted = 0;
+  const skipped = 0;
+  let out = "";
+  let cursor = 0;
+  for (const line of splitLines(text)) {
+    out += text.slice(cursor, line.start);
+    cursor = line.end;
+    if (!isHeadingLine(line.text) && isCitePattern(line.text)) {
+      const fmt = formatCiteLine(line.text, currentYear);
+      if (fmt !== null && fmt !== line.text) {
+        out += fmt;
+        formatted++;
+        continue;
+      }
+    }
+    out += line.text;
+  }
+  out += text.slice(cursor);
+  return { text: out, formatted, skipped };
+}
+
 /** Raw text of the nearest cite line strictly above `offset`'s line, or null. */
 export function previousCiteLine(text: string, offset: number): string | null {
   const [curStart] = lineBoundsAt(text, offset);

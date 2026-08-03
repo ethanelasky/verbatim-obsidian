@@ -31,7 +31,12 @@ import {
   sectionRange,
   setHeadingLevel,
 } from "./structure";
-import { formatCiteLine, previousCiteLine, reformatAllCites } from "./cites";
+import {
+  formatCiteLine,
+  previousCiteLine,
+  reformatAllCites,
+  reformatCiteLines,
+} from "./cites";
 import { buildCiteLine, extractCiteMeta } from "./citeExtract";
 import {
   autoEmphasizeFirst,
@@ -198,6 +203,42 @@ export default class VerbatimPlugin extends Plugin {
     if (sel) {
       const clamp = (n: number) => Math.max(0, Math.min(n, newT.length));
       ed.setSelection(ed.offsetToPos(clamp(sel[0])), ed.offsetToPos(clamp(sel[1])));
+    }
+  }
+
+  /**
+   * Selection expanded to whole lines, or null if nothing is selected.
+   * Doc-wide tools use this to operate on just the selection when one exists.
+   */
+  private selectedLineRange(ed: Editor, text: string): [number, number] | null {
+    const [f, t] = selOffsets(ed);
+    if (t <= f) return null;
+    const [ls] = lineBoundsAt(text, f);
+    const tEff = text[t - 1] === "\n" ? t - 1 : t;
+    const [, le] = lineBoundsAt(text, Math.max(f, tEff));
+    return [ls, le];
+  }
+
+  /** Run a whole-text transform on the selection (line-expanded) or the doc. */
+  private runScopedTool(
+    ed: Editor,
+    label: string,
+    fn: (text: string) => { text: string; count: number },
+  ): void {
+    const text = ed.getValue();
+    const sel = this.selectedLineRange(ed, text);
+    if (sel) {
+      const [ls, le] = sel;
+      const slice = text.slice(ls, le);
+      const res = fn(slice);
+      if (res.text !== slice) {
+        this.applyNewText(ed, text, text.slice(0, ls) + res.text + text.slice(le), null);
+      }
+      new Notice(`${label}: ${res.count} change(s) in selection`);
+    } else {
+      const res = fn(text);
+      if (res.text !== text) this.applyNewText(ed, text, res.text, null);
+      new Notice(`${label}: ${res.count} change(s)`);
     }
   }
 
@@ -383,9 +424,7 @@ export default class VerbatimPlugin extends Plugin {
       { modifiers: ["Alt"], key: "F3" },
       { modifiers: ["Mod"], key: "8" },
     ]);
-    cmd("shrink-all", "Shrink all cards in document", shrink("shrink", true), [
-      { modifiers: ["Mod", "Alt", "Shift"], key: "8" },
-    ]);
+    cmd("shrink-all", "Shrink all cards in document", shrink("shrink", true));
     cmd("unshrink-all", "Unshrink all cards in document", shrink("unshrink", true));
 
     // ---- Inline styles ----
@@ -414,16 +453,10 @@ export default class VerbatimPlugin extends Plugin {
         this.updateStatus();
         new Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
       },
-      [{ modifiers: ["Mod", "Shift"], key: "U" }],
     );
-    cmd(
-      "set-highlight-color",
-      "Set highlight color",
-      () => {
-        new HlColorModal(this.app, this).open();
-      },
-      [{ modifiers: ["Mod", "Shift"], key: "C" }],
-    );
+    cmd("set-highlight-color", "Set highlight color", () => {
+      new HlColorModal(this.app, this).open();
+    });
 
     // ---- Cites ----
     cmd(
@@ -476,17 +509,23 @@ export default class VerbatimPlugin extends Plugin {
         { modifiers: ["Mod", "Alt"], key: "8" },
       ],
     );
-    cmd(
-      "reformat-all-cites",
-      "Reformat all cites",
-      (ed) => {
-        const text = ed.getValue();
+    cmd("reformat-all-cites", "Reformat all cites", (ed) => {
+      const text = ed.getValue();
+      const sel = this.selectedLineRange(ed, text);
+      if (sel) {
+        const [ls, le] = sel;
+        const slice = text.slice(ls, le);
+        const res = reformatCiteLines(slice, this.currentYear());
+        if (res.text !== slice) {
+          this.applyNewText(ed, text, text.slice(0, ls) + res.text + text.slice(le), null);
+        }
+        new Notice(`Cites: ${res.formatted} formatted in selection`);
+      } else {
         const res = reformatAllCites(text, this.currentYear());
         if (res.text !== text) this.applyNewText(ed, text, res.text, null);
         new Notice(`Cites: ${res.formatted} formatted, ${res.skipped} skipped`);
-      },
-      [{ modifiers: ["Mod", "Shift"], key: "8" }],
-    );
+      }
+    });
     cmd(
       "duplicate-cite",
       "Duplicate previous cite",
@@ -558,32 +597,24 @@ export default class VerbatimPlugin extends Plugin {
       },
       [{ modifiers: ["Mod", "Alt"], key: "F10" }],
     );
-    cmd(
-      "standardize-highlighting",
-      "Standardize highlighting",
-      (ed) => {
-        const text = ed.getValue();
-        const res = standardizeHighlighting(text, this.settings.currentHl, null, this.settings.defaultHl);
-        if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-        new Notice(`Standardized highlighting on ${res.count} line(s)`);
-      },
-      [{ modifiers: ["Mod", "Shift"], key: "H" }],
-    );
+    cmd("standardize-highlighting", "Standardize highlighting", (ed) => {
+      this.runScopedTool(ed, "Standardize highlighting", (t) =>
+        standardizeHighlighting(t, this.settings.currentHl, null, this.settings.defaultHl),
+      );
+    });
     cmd(
       "standardize-highlighting-exception",
       "Standardize highlighting (with exception)",
       (ed) => {
-        const text = ed.getValue();
-        const res = standardizeHighlighting(
-          text,
-          this.settings.currentHl,
-          this.settings.exceptionHl,
-          this.settings.defaultHl,
+        this.runScopedTool(ed, "Standardize highlighting", (t) =>
+          standardizeHighlighting(
+            t,
+            this.settings.currentHl,
+            this.settings.exceptionHl,
+            this.settings.defaultHl,
+          ),
         );
-        if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-        new Notice(`Standardized highlighting on ${res.count} line(s)`);
       },
-      [{ modifiers: ["Mod", "Alt", "Shift"], key: "H" }],
     );
 
     const numberCmd = (number: boolean) => (ed: Editor) => {
@@ -605,37 +636,28 @@ export default class VerbatimPlugin extends Plugin {
     cmd("auto-number-tags", "Auto number tags", numberCmd(true), [
       { modifiers: ["Mod", "Shift"], key: "3" },
     ]);
-    cmd("de-number-tags", "De-number tags", numberCmd(false), [
-      { modifiers: ["Mod", "Alt", "Shift"], key: "3" },
-    ]);
+    cmd("de-number-tags", "De-number tags", numberCmd(false));
 
     // ---- Fixers ----
-    const fix = (label: string, fn: (text: string) => FixResult) => (ed: Editor) => {
-      const text = ed.getValue();
-      const res = fn(text);
-      if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-      new Notice(`${label}: ${res.count} change(s)`);
-    };
+    const fix =
+      (label: string, fn: (text: string) => FixResult) => (ed: Editor) =>
+        this.runScopedTool(ed, label, fn);
     const hl = () => this.settings.defaultHl;
     cmd("fix-fake-tags", "Fix fake tags", fix("Fix fake tags", (t) => fixFakeTags(t, hl())));
     cmd(
       "fix-formatting-gaps",
       "Fix formatting gaps",
       fix("Fix formatting gaps", (t) => fixFormattingGaps(t, hl())),
-      [{ modifiers: ["Mod", "Shift"], key: "G" }],
     );
     cmd(
       "convert-default-styles",
       "Convert to default styles",
       fix("Convert to default styles", convertToDefaultStyles),
-      [{ modifiers: ["Mod", "Alt", "Shift"], key: "C" }],
     );
     cmd("remove-blanks", "Remove blanks", fix("Remove blanks", removeBlanks), [
       { modifiers: ["Mod", "Shift"], key: "B" },
     ]);
-    cmd("remove-pilcrows", "Remove pilcrows", fix("Remove pilcrows", removePilcrows), [
-      { modifiers: ["Mod", "Shift"], key: "P" },
-    ]);
+    cmd("remove-pilcrows", "Remove pilcrows", fix("Remove pilcrows", removePilcrows));
     cmd("remove-hyperlinks", "Remove hyperlinks", fix("Remove hyperlinks", removeHyperlinks));
     cmd(
       "remove-emphasis",
