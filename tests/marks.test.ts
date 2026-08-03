@@ -88,6 +88,22 @@ describe("applyInline", () => {
     expect(res!.text).toBe("a ==hi== there tiny name");
   });
 
+  it("cite op toggles <b> styling on a selection (manual F8)", () => {
+    const from = doc.indexOf("cite line");
+    const res = applyInline(doc, from, from + 9, "cite", {
+      defaultColor: DC,
+      currentColor: DC,
+      coupleBold: false,
+    });
+    expect(res!.text).toContain("<b>cite line</b> stays");
+    const undone = applyInline(res!.text, res!.selFrom, res!.selTo, "cite", {
+      defaultColor: DC,
+      currentColor: DC,
+      coupleBold: false,
+    });
+    expect(undone!.text).toBe(doc);
+  });
+
   it("underline couples bold when configured", () => {
     const from = doc.indexOf("body");
     const res = applyInline(doc, from, from + 4, "underline", {

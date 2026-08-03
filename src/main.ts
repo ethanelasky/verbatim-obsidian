@@ -416,8 +416,14 @@ export default class VerbatimPlugin extends Plugin {
     // ---- Cites ----
     cmd(
       "auto-format-cite",
-      "Auto format cite",
+      "Cite (style selection / auto format)",
       (ed) => {
+        const [selF, selT] = selOffsets(ed);
+        if (selT > selF) {
+          // manual mode: toggle cite styling on whatever is selected
+          this.runInline(ed, "cite");
+          return;
+        }
         const text = ed.getValue();
         const [f] = selOffsets(ed);
         const card = cardAt(text, f);
@@ -446,7 +452,7 @@ export default class VerbatimPlugin extends Plugin {
         const raw = text.slice(cs, ce);
         const fmt = formatCiteLine(raw, this.currentYear());
         if (fmt === null) {
-          new Notice("Cite line is not parseable — use: First Last, quals, M-D-YYYY, \"Title,\" URL");
+          new Notice("Couldn't auto-parse this cite — select the name or date and press F8 to style it manually");
           return;
         }
         if (fmt !== raw) {

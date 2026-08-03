@@ -518,7 +518,7 @@ function applyInline(text, from, to, op, opts) {
       for (let i = j.ci; i < j.cj; i++) {
         const c = j.chars[i];
         if (/\s/.test(c.ch)) continue;
-        const has = op === "underline" ? c.m.u : op === "emphasis" ? c.m.b : c.m.hl === opts.currentColor;
+        const has = op === "underline" ? c.m.u : op === "emphasis" ? c.m.b : op === "cite" ? c.m.cb : c.m.hl === opts.currentColor;
         if (!has) {
           hasAll = false;
           break outer;
@@ -549,6 +549,8 @@ function applyInline(text, from, to, op, opts) {
         if (opts.coupleBold) m.b = !hasAll;
       } else if (op === "emphasis") {
         m.b = !hasAll;
+      } else if (op === "cite") {
+        m.cb = !hasAll;
       } else if (op === "highlight") {
         m.hl = hasAll ? null : opts.currentColor;
       } else {
@@ -1578,8 +1580,13 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     });
     cmd(
       "auto-format-cite",
-      "Auto format cite",
+      "Cite (style selection / auto format)",
       (ed) => {
+        const [selF, selT] = selOffsets(ed);
+        if (selT > selF) {
+          this.runInline(ed, "cite");
+          return;
+        }
         const text = ed.getValue();
         const [f] = selOffsets(ed);
         const card = cardAt(text, f);
@@ -1608,7 +1615,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const raw = text.slice(cs, ce);
         const fmt = formatCiteLine(raw, this.currentYear());
         if (fmt === null) {
-          new import_obsidian2.Notice('Cite line is not parseable \u2014 use: First Last, quals, M-D-YYYY, "Title," URL');
+          new import_obsidian2.Notice("Couldn't auto-parse this cite \u2014 select the name or date and press F8 to style it manually");
           return;
         }
         if (fmt !== raw) {

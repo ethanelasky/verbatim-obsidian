@@ -7,7 +7,7 @@
 import { isHeadingLine, splitLines } from "./cardModel";
 import { parseLine, rangeToCharIdx, serialize, trimIdx, PChar } from "./marks";
 
-export type InlineOp = "underline" | "emphasis" | "highlight" | "clear";
+export type InlineOp = "underline" | "emphasis" | "highlight" | "cite" | "clear";
 
 export interface InlineOpts {
   defaultColor: string;
@@ -66,6 +66,7 @@ export function applyInline(
         const has =
           op === "underline" ? c.m.u
           : op === "emphasis" ? c.m.b
+          : op === "cite" ? c.m.cb
           : c.m.hl === opts.currentColor;
         if (!has) { hasAll = false; break outer; }
       }
@@ -96,6 +97,8 @@ export function applyInline(
         if (opts.coupleBold) m.b = !hasAll;
       } else if (op === "emphasis") {
         m.b = !hasAll;
+      } else if (op === "cite") {
+        m.cb = !hasAll;
       } else if (op === "highlight") {
         m.hl = hasAll ? null : opts.currentColor;
       } else {

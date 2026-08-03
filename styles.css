@@ -50,10 +50,13 @@ body.vb-emphasis-large .cm-content .cm-strong {
 }
 
 /* Cite emphasis uses <b> tags (distinct from ** Emphasis), so box/large
-   emphasis modes never restyle cite names and dates. */
+   emphasis modes never restyle cite names and dates.
+   Cite style: bold + underline at normal text size. */
 .markdown-rendered b,
 .cm-content b {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1em;
+  text-decoration: underline;
 }
 
 /* ---- Card file styles ----
