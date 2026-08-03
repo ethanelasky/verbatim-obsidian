@@ -75,6 +75,14 @@ body.vb-emphasis-large .cm-content .cm-strong {
   border: 2px solid currentColor;
   padding: 0.3em 0.4em;
   text-align: center;
+  line-height: 1.3;
+}
+/* Obsidian's Live Preview gives heading lines extra padding-top for spacing;
+   override it so the text sits vertically centered inside the box. */
+.markdown-source-view.mod-cm6.cardfile .HyperMD-header-2,
+.markdown-source-view.mod-cm6 .cardfile .HyperMD-header-2 {
+  padding: 0.3em 0.4em !important;
+  margin-top: 0.4em;
 }
 
 /* Hat (H3): bold, centered, double underline */
