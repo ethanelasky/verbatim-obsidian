@@ -247,11 +247,11 @@ export default class VerbatimPlugin extends Plugin {
       const res = setHeadingLevel(text, f, t, level);
       if (res) this.applyNewText(ed, text, res.text, [res.to, res.to]);
     };
-    cmd("pocket", "Pocket (heading 3)", heading(3), [
+    cmd("pocket", "Pocket (heading 2)", heading(2), [
       { modifiers: [], key: "F4" },
       { modifiers: ["Mod", "Alt"], key: "4" },
     ]);
-    cmd("hat", "Hat (heading 4)", heading(4), [
+    cmd("hat", "Hat (heading 3)", heading(3), [
       { modifiers: [], key: "F5" },
       { modifiers: ["Mod", "Alt"], key: "5" },
     ]);

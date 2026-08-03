@@ -49,12 +49,12 @@ Evidence lives in a small number of **large Markdown notes** (one per topic/file
 
 | Level | Verbatim name | Markdown | Role |
 |---|---|---|---|
-| 3 | **Pocket** | `###` | Major section of a file |
-| 4 | **Hat** | `####` | Subsection; groups similar blocks |
+| 2 | **Pocket** | `##` | Major section of a file |
+| 3 | **Hat** | `###` | Subsection; groups similar blocks |
 | 5 | **Block** | `#####` | One argument — a card or group of cards |
 | 6 | **Tag** | `######` | The tag (claim) of an individual card |
 
-(v0.2 revision: shifted from H1–H4 to H3–H6, leaving H1/H2 free for ordinary note structure.)
+(v0.2 revision: shifted from H1–H4 to H2/H3/H5/H6 — H1 stays free for note titles, H4 is reserved.)
 
 Rules carried over from Verbatim:
 

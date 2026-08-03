@@ -61,32 +61,32 @@ body.vb-emphasis-large .cm-content .cm-strong {
      ---
      cssclasses: cardfile
      ---
-   Hierarchy: Pocket = H3, Hat = H4, Block = H5, Tag = H6. */
+   Hierarchy: Pocket = H2, Hat = H3, Block = H5, Tag = H6 (H4 reserved). */
 
-/* Pocket (H3): large bold in a border box (Verbatim pocket style) */
-.cardfile h3,
-.cardfile .HyperMD-header-3 .cm-header {
+/* Pocket (H2): large bold in a border box (Verbatim pocket style) */
+.cardfile h2,
+.cardfile .HyperMD-header-2 .cm-header {
   font-size: 1.3em;
   font-weight: 700;
   text-decoration: none;
   border: 2px solid currentColor;
   padding: 0.05em 0.35em;
 }
-.cardfile h3 {
+.cardfile h2 {
   display: inline-block;
 }
 
-/* Hat (H4): bold, centered, double underline */
-.cardfile h4,
-.cardfile .HyperMD-header-4 .cm-header {
+/* Hat (H3): bold, centered, double underline */
+.cardfile h3,
+.cardfile .HyperMD-header-3 .cm-header {
   font-size: 1.15em;
   font-weight: 700;
   text-decoration: underline;
   text-decoration-style: double;
   text-underline-offset: 3px;
 }
-.cardfile h4,
-.cardfile .HyperMD-header-4 {
+.cardfile h3,
+.cardfile .HyperMD-header-3 {
   text-align: center;
 }
 

@@ -37,8 +37,8 @@ export interface Line {
 
 export const PILCROW = "¶";
 
-/** Pocket/Hat/Block/Tag heading levels (H3–H6). */
-export const LEVELS = { pocket: 3, hat: 4, block: 5, tag: 6 } as const;
+/** Pocket/Hat/Block/Tag heading levels (H2, H3, H5, H6 — H4 reserved). */
+export const LEVELS = { pocket: 2, hat: 3, block: 5, tag: 6 } as const;
 export const TAG_LEVEL = LEVELS.tag;
 
 export const OMISSION_NOTES = [

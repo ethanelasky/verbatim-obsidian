@@ -2,7 +2,7 @@
 
 Debate-style card cutting in Obsidian, modeled on [Verbatim](https://paperlessdebate.com) for Microsoft Word. See `SPEC.md` for the full design.
 
-Evidence lives in plain Markdown: Pocket/Hat/Block/Tag are headings `###`–`######`, underlining is `<u>`, emphasis is `**bold**`, cite emphasis is `<b>bold</b>` (so it styles independently of Emphasis), highlights are `==…==` (default color) or `<mark class="vb-hl-COLOR">`, shrunk text is `<small>`. Files render correctly even with the plugin disabled.
+Evidence lives in plain Markdown: Pocket/Hat/Block/Tag are headings `##`, `###`, `#####`, `######` (H4 reserved), underlining is `<u>`, emphasis is `**bold**`, cite emphasis is `<b>bold</b>` (so it styles independently of Emphasis), highlights are `==…==` (default color) or `<mark class="vb-hl-COLOR">`, shrunk text is `<small>`. Files render correctly even with the plugin disabled.
 
 Add `cssclasses: cardfile` to a note's frontmatter to activate the Verbatim-style heading looks (Pocket large bold; Hat bold centered double-underline; Block bold centered underline; Tag body-sized bold) in that file only.
 
@@ -40,8 +40,8 @@ All hotkeys are remappable in Settings → Hotkeys (search "Verbatim"). Everythi
 ---
 cssclasses: cardfile
 ---
-### Pocket
-#### Hat
+## Pocket
+### Hat
 ##### Block
 ###### Tag — the claim this card supports
 Aaron <b>Hardy</b>, creator of Verbatim, 1-1-<b>3000</b>, "Verbatim Online Manual," https://docs.paperlessdebate.com

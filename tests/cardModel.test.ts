@@ -9,8 +9,8 @@ import {
 } from "../src/cardModel";
 
 const DOC = [
-  "### Uniqueness",            // 0
-  "#### Economy",
+  "## Uniqueness",            // 0
+  "### Economy",
   "##### Econ High Now",
   "###### 1. Growth is strong",
   'Aaron <b>Hardy</b>, creator of Verbatim, 1-1-<b>3000</b>, "Verbatim Online Manual," https://example.com',
@@ -19,16 +19,16 @@ const DOC = [
   "Second body paragraph here.",
   "###### 2. AT: Recession",
   "This one is an analytic with no cite.",
-  "### Links",
+  "## Links",
   "body under links",
 ].join("\n");
 
 describe("parseHeadings", () => {
   it("finds all headings with correct levels and section ends", () => {
     const hs = parseHeadings(DOC);
-    expect(hs.map((h) => h.level)).toEqual([3, 4, 5, 6, 6, 3]);
-    // first pocket's section ends at "### Links"
-    expect(DOC.slice(hs[0].sectionEnd, hs[0].sectionEnd + 9)).toBe("### Links");
+    expect(hs.map((h) => h.level)).toEqual([2, 3, 5, 6, 6, 2]);
+    // first pocket's section ends at "## Links"
+    expect(DOC.slice(hs[0].sectionEnd, hs[0].sectionEnd + 8)).toBe("## Links");
     // first tag's section ends at the second tag
     expect(DOC.slice(hs[3].sectionEnd, hs[3].sectionEnd + 6)).toBe("######");
   });
