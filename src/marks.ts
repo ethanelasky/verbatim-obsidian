@@ -8,7 +8,13 @@
  *   sm — shrunk               <small>…</small>
  *
  * Lines are parsed into per-character flag arrays, mutated, and re-serialized
- * with canonical nesting order: u > hl > b > sm.
+ * with canonical nesting order: b > hl > u > sm > cb.
+ *
+ * CRITICAL nesting constraint: Obsidian does not parse Markdown syntax that
+ * sits inside inline HTML tags — `<u>==x==</u>` renders the `==` literally.
+ * So the Markdown marks (** bold, == default highlight) must always be
+ * OUTSIDE the HTML tags (<mark>, <u>, <small>, <b>), which is what the
+ * canonical order guarantees.
  */
 
 export const HL_COLORS = [
@@ -163,10 +169,11 @@ export function serialize(chars: PChar[], defaultColor: string): Serialized {
     : t.hl === defaultColor ? "==" : "</mark>";
 
   const desired = (m: CharMarks): StackTok[] => {
+    // Markdown marks (b, default-color hl) first = outermost; HTML inside.
     const d: StackTok[] = [];
-    if (m.u) d.push({ k: "u" });
-    if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
     if (m.b) d.push({ k: "b" });
+    if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
+    if (m.u) d.push({ k: "u" });
     if (m.sm) d.push({ k: "sm" });
     if (m.cb) d.push({ k: "cb" });
     return d;

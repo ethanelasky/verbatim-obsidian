@@ -11,16 +11,16 @@ describe("parseLine / serialize round trip", () => {
   });
 
   it("round-trips canonical markup", () => {
-    const line = "a <u>bb ==cc==</u> <small>dd</small>";
+    const line = "a <u>bb </u>==<u>cc</u>== <small>dd</small>";
     const ser = serialize(parseLine(line, DC), DC);
     expect(plainText(parseLine(ser.text, DC))).toBe("a bb cc dd");
     expect(ser.text).toBe(line);
   });
 
-  it("normalizes nesting order to u > hl > b > sm", () => {
-    const line = "**<u>x</u>**";
-    const ser = serialize(parseLine(line, DC), DC);
-    expect(ser.text).toBe("<u>**x**</u>");
+  it("keeps Markdown marks outside HTML tags (Obsidian rendering rule)", () => {
+    // <u>==x==</u> would render the == literally; canonical form flips it
+    const ser = serialize(parseLine("<u>==x== **y**</u>", DC), DC);
+    expect(ser.text).toBe("==<u>x</u>==<u> </u>**<u>y</u>**");
   });
 
   it("writes non-default highlight colors as mark tags", () => {
@@ -95,6 +95,6 @@ describe("applyInline", () => {
       currentColor: DC,
       coupleBold: true,
     });
-    expect(res!.text).toContain("<u>**body**</u>");
+    expect(res!.text).toContain("**<u>body</u>**");
   });
 });

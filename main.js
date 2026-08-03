@@ -169,9 +169,9 @@ function serialize(chars, defaultColor) {
   const closeTok = (t) => t.k === "u" ? "</u>" : t.k === "b" ? "**" : t.k === "sm" ? "</small>" : t.k === "cb" ? "</b>" : t.hl === defaultColor ? "==" : "</mark>";
   const desired = (m) => {
     const d = [];
-    if (m.u) d.push({ k: "u" });
-    if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
     if (m.b) d.push({ k: "b" });
+    if (m.hl !== null) d.push({ k: "hl", hl: m.hl });
+    if (m.u) d.push({ k: "u" });
     if (m.sm) d.push({ k: "sm" });
     if (m.cb) d.push({ k: "cb" });
     return d;

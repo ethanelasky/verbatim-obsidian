@@ -121,7 +121,7 @@ describe("fixers", () => {
     const doc = "<u>plain underline</u> and <u>with ==light== inside</u>";
     const res = removeNonHighlightedUnderlining(doc, "yellow");
     expect(res.text).not.toContain("<u>plain underline</u>");
-    expect(res.text).toContain("==light==");
-    expect(res.text).toContain("<u>with ==light== inside</u>");
+    expect(res.text).toContain("==<u>light</u>==");
+    expect(res.text).toContain("<u>with </u>==<u>light</u>==<u> inside</u>");
   });
 });
