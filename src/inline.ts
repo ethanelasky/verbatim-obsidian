@@ -97,6 +97,8 @@ export function applyInline(
         if (opts.coupleBold) m.b = !hasAll;
       } else if (op === "emphasis") {
         m.b = !hasAll;
+        // Verbatim parity: applying Emphasis replaces Underline
+        if (!hasAll) m.u = false;
       } else if (op === "cite") {
         m.cb = !hasAll;
       } else if (op === "highlight") {

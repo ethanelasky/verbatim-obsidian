@@ -41,6 +41,19 @@ describe("parseLine / serialize round trip", () => {
 describe("applyInline", () => {
   const doc = "###### Tag\ncite line stays\nplain body text here";
 
+  it("emphasis replaces underline on the selection", () => {
+    const src = "###### Tag\ncite line stays\nplain <u>body text</u> here";
+    const from = src.indexOf("body");
+    const to = from + "body text".length;
+    const res = applyInline(src, from, to, "emphasis", {
+      defaultColor: DC,
+      currentColor: DC,
+      coupleBold: false,
+    });
+    expect(res!.text).toContain("**body text**");
+    expect(res!.text).not.toContain("<u>");
+  });
+
   it("toggles underline on and off (idempotent toggle)", () => {
     const from = doc.indexOf("body");
     const to = from + "body text".length;
