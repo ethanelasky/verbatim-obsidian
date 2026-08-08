@@ -2,10 +2,12 @@ import {
   App,
   Editor,
   FuzzySuggestModal,
+  Hotkey,
   MarkdownView,
   Modal,
   Notice,
   Plugin,
+  WorkspaceLeaf,
   requestUrl,
 } from "obsidian";
 
@@ -57,6 +59,59 @@ import {
   FixResult,
 } from "./fixers";
 import { DEFAULT_SETTINGS, VbSettings, VbSettingTab } from "./settings";
+import {
+  VbAction,
+  VbGroup,
+  VerbatimPanelView,
+  VIEW_TYPE_VERBATIM,
+} from "./panel";
+
+/** Short button labels for the panel; commands keep their full names. */
+const PANEL_LABELS: Record<string, string> = {
+  "paste-text": "Paste text",
+  condense: "Condense",
+  "condense-pilcrows": "Condense ¶",
+  "condense-no-pilcrows": "Condense no ¶",
+  uncondense: "Uncondense",
+  shrink: "Shrink",
+  "shrink-all": "Shrink doc",
+  "unshrink-all": "Unshrink doc",
+  pocket: "Pocket",
+  hat: "Hat",
+  block: "Block",
+  tag: "Tag",
+  "move-heading-up": "Move ↑",
+  "move-heading-down": "Move ↓",
+  "move-heading-bottom": "To bottom",
+  "select-heading": "Select",
+  "delete-heading": "Delete",
+  underline: "Underline",
+  emphasis: "Emphasis",
+  highlight: "Highlight",
+  "clear-formatting": "Clear",
+  "underline-mode": "U-mode",
+  "set-highlight-color": "Color…",
+  "auto-format-cite": "Cite",
+  "cite-from-url": "From URL",
+  "duplicate-cite": "Duplicate",
+  "reformat-all-cites": "Reformat all",
+  "auto-emphasize-first": "Emph. first letters",
+  "standardize-highlighting": "Standardize hl",
+  "standardize-highlighting-exception": "Standardize (exc.)",
+  "auto-number-tags": "Number tags",
+  "de-number-tags": "De-number",
+  "fix-fake-tags": "Fake tags",
+  "fix-formatting-gaps": "Formatting gaps",
+  "convert-default-styles": "Default styles",
+  "remove-blanks": "Blanks",
+  "remove-pilcrows": "Pilcrows",
+  "remove-hyperlinks": "Hyperlinks",
+  "remove-emphasis": "Emphasis→underline",
+  "remove-non-highlighted-underlining": "Stray underlining",
+  "select-similar": "Select similar",
+};
+
+const PANEL_GROUPS = ["Cutting", "Structure", "Format", "Cites", "Automation", "Fixers"];
 
 function selOffsets(ed: Editor): [number, number] {
   return [
@@ -125,9 +180,13 @@ class HlColorModal extends FuzzySuggestModal<HlColor> {
 
 export default class VerbatimPlugin extends Plugin {
   settings: VbSettings = { ...DEFAULT_SETTINGS };
+  /** Tool groups, shared by the command palette and the panel. */
+  groups: VbGroup[] = [];
   private underlineMode = false;
   private applyingUnderline = false;
   private statusEl: HTMLElement | null = null;
+  /** Last markdown view seen, so panel clicks still find an editor. */
+  private lastMd: MarkdownView | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -137,11 +196,114 @@ export default class VerbatimPlugin extends Plugin {
     this.applyAppearance();
     this.registerCommands();
 
+    this.registerView(
+      VIEW_TYPE_VERBATIM,
+      (leaf: WorkspaceLeaf) => new VerbatimPanelView(leaf, this),
+    );
+    this.addRibbonIcon("scissors", "Verbatim panel", () => void this.activatePanel());
+    this.addCommand({
+      id: "open-panel",
+      name: "Open Verbatim panel",
+      callback: () => void this.activatePanel(),
+    });
+
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view instanceof MarkdownView) this.lastMd = leaf.view;
+      }),
+    );
+
     // Underline Mode: apply on selection completion (mouseup / shift release)
     this.registerDomEvent(document, "mouseup", () => this.maybeUnderlineSelection());
     this.registerDomEvent(document, "keyup", (e: KeyboardEvent) => {
       if (e.key === "Shift") this.maybeUnderlineSelection();
     });
+  }
+
+  /** Reveal the panel in the right sidebar, creating it if needed. */
+  async activatePanel(): Promise<void> {
+    const { workspace } = this.app;
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_VERBATIM);
+    if (existing.length) {
+      await workspace.revealLeaf(existing[0]);
+      return;
+    }
+    const leaf = workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_TYPE_VERBATIM, active: true });
+    await workspace.revealLeaf(leaf);
+  }
+
+  private refreshPanel(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_VERBATIM)) {
+      if (leaf.view instanceof VerbatimPanelView) leaf.view.refresh();
+    }
+  }
+
+  async toggleGroup(title: string): Promise<void> {
+    const list = this.settings.collapsedGroups;
+    const i = list.indexOf(title);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(title);
+    await this.saveSettings();
+    this.refreshPanel();
+  }
+
+  /**
+   * The editor a panel click should act on. Buttons suppress focus changes, so
+   * the active view is normally still the note; the fallbacks cover the case
+   * where focus genuinely sat elsewhere (e.g. after using the file explorer).
+   */
+  private targetEditor(): Editor | null {
+    const active = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (active) {
+      this.lastMd = active;
+      return active.editor;
+    }
+    const last = this.lastMd;
+    if (last && this.app.workspace.getLeavesOfType("markdown").includes(last.leaf)) {
+      return last.editor;
+    }
+    const recent = this.app.workspace.getMostRecentLeaf();
+    if (recent?.view instanceof MarkdownView) {
+      this.lastMd = recent.view;
+      return recent.view.editor;
+    }
+    return null;
+  }
+
+  /** Run a panel button's action against the current note. */
+  runAction(a: VbAction): void {
+    const ed = this.targetEditor();
+    if (!ed) {
+      new Notice("Open a note to use Verbatim");
+      return;
+    }
+    void Promise.resolve(a.run(ed)).then(() => this.refreshPanel());
+  }
+
+  /** Highlight color swatches for the panel's Format group. */
+  private renderHlSwatches(el: HTMLElement): void {
+    const row = el.createDiv({ cls: "vb-swatches" });
+    for (const c of HL_COLORS) {
+      const sw = row.createEl("button", { cls: `vb-swatch vb-swatch-${c}` });
+      if (c === this.settings.currentHl) sw.addClass("is-current");
+      if (c === this.settings.defaultHl) sw.addClass("is-default");
+      const tip =
+        `${c[0].toUpperCase()}${c.slice(1)} — set current color` +
+        (c === this.settings.defaultHl ? " (default, written as ==…==)" : "") +
+        "; highlights the selection";
+      sw.setAttribute("title", tip);
+      sw.setAttribute("aria-label", tip);
+      sw.addEventListener("mousedown", (e) => e.preventDefault());
+      sw.addEventListener("click", () => {
+        this.settings.currentHl = c;
+        void this.saveSettings();
+        const ed = this.targetEditor();
+        if (ed?.somethingSelected()) this.runInline(ed, "highlight", true);
+        this.refreshPanel();
+      });
+    }
   }
 
   onunload(): void {
@@ -167,6 +329,7 @@ export default class VerbatimPlugin extends Plugin {
     if (this.settings.emphasisMode === "box") body.classList.add("vb-emphasis-box");
     if (this.settings.emphasisMode === "large") body.classList.add("vb-emphasis-large");
     body.style.setProperty("--vb-shrink-scale", String(this.settings.shrinkFactor / 100));
+    this.refreshPanel();
   }
 
   private currentYear(): number {
@@ -178,6 +341,7 @@ export default class VerbatimPlugin extends Plugin {
     if (!this.statusEl) return;
     this.statusEl.setText(this.underlineMode ? "U-mode" : "");
     this.statusEl.toggleClass("vb-underline-mode-status", this.underlineMode);
+    this.refreshPanel();
   }
 
   /** Replace the minimal differing region so cursor/scroll/undo stay sane. */
@@ -272,16 +436,26 @@ export default class VerbatimPlugin extends Plugin {
   }
 
   private registerCommands(): void {
+    this.groups = PANEL_GROUPS.map((title) => ({ title, items: [] }));
+    let cur = this.groups[0];
+    const group = (title: string) => {
+      cur = this.groups.find((g) => g.title === title) ?? cur;
+    };
     const cmd = (
       id: string,
       name: string,
       cb: (ed: Editor) => void | Promise<void>,
-      hotkeys?: { modifiers: ("Mod" | "Alt" | "Shift" | "Ctrl")[]; key: string }[],
+      hotkeys?: Hotkey[],
+      isActive?: () => boolean,
     ) => {
+      cur.items.push({ id, name, label: PANEL_LABELS[id] ?? name, hotkeys, isActive, run: cb });
       this.addCommand({ id, name, hotkeys, editorCallback: (ed) => void cb(ed) });
     };
+    const fmt = this.groups.find((g) => g.title === "Format");
+    if (fmt) fmt.extras = (el) => this.renderHlSwatches(el);
 
     // ---- Structure ----
+    group("Structure");
     const heading = (level: number) => (ed: Editor) => {
       const text = ed.getValue();
       const [f, t] = selOffsets(ed);
@@ -344,6 +518,7 @@ export default class VerbatimPlugin extends Plugin {
     );
 
     // ---- Cutting ----
+    group("Cutting");
     cmd(
       "paste-text",
       "Paste text (unformatted)",
@@ -428,6 +603,7 @@ export default class VerbatimPlugin extends Plugin {
     cmd("unshrink-all", "Unshrink all cards in document", shrink("unshrink", true));
 
     // ---- Inline styles ----
+    group("Format");
     cmd("underline", "Underline", (ed) => this.runInline(ed, "underline"), [
       { modifiers: [], key: "F9" },
       { modifiers: ["Mod", "Alt"], key: "9" },
@@ -453,12 +629,15 @@ export default class VerbatimPlugin extends Plugin {
         this.updateStatus();
         new Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
       },
+      undefined,
+      () => this.underlineMode,
     );
     cmd("set-highlight-color", "Set highlight color", () => {
       new HlColorModal(this.app, this).open();
     });
 
     // ---- Cites ----
+    group("Cites");
     cmd(
       "auto-format-cite",
       "Cite (style selection / auto format)",
@@ -582,6 +761,7 @@ export default class VerbatimPlugin extends Plugin {
     );
 
     // ---- Automation ----
+    group("Automation");
     cmd(
       "auto-emphasize-first",
       "Auto-emphasize first letters",
@@ -639,6 +819,7 @@ export default class VerbatimPlugin extends Plugin {
     cmd("de-number-tags", "De-number tags", numberCmd(false));
 
     // ---- Fixers ----
+    group("Fixers");
     const fix =
       (label: string, fn: (text: string) => FixResult) => (ed: Editor) =>
         this.runScopedTool(ed, label, fn);

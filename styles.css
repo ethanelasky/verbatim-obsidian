@@ -132,3 +132,119 @@ body.vb-emphasis-large .cm-content .cm-strong {
   color: var(--text-accent);
   font-weight: 600;
 }
+
+/* ---- Verbatim panel (the sidebar stand-in for Verbatim's Word ribbon) ---- */
+
+.vb-panel {
+  padding: 4px 8px 16px;
+}
+
+.vb-group + .vb-group {
+  margin-top: 10px;
+}
+
+.vb-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+.vb-group-head:hover {
+  color: var(--text-normal);
+}
+.vb-group-caret {
+  width: 0.9em;
+  font-size: 0.9em;
+}
+
+.vb-group-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Every button rule below must outrank Obsidian's own
+   `button:not(.clickable-icon)` and `button:hover` (specificity 0,1,1),
+   which otherwise repaint the swatches in the stock button gray.
+   Hence `.vb-panel button.vb-…` (0,2,1) throughout. */
+
+.vb-panel button.vb-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  height: auto;
+  padding: 4px 8px;
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.vb-panel button.vb-btn.is-active,
+.vb-panel button.vb-btn.is-active:hover {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.vb-btn-key {
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  opacity: 0.5;
+}
+.vb-btn.is-active .vb-btn-key {
+  opacity: 0.8;
+}
+
+.vb-group-extras:not(:empty) {
+  margin-top: 6px;
+}
+.vb-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.vb-panel button.vb-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: pointer;
+}
+.vb-panel button.vb-swatch.is-current {
+  border-color: var(--text-normal);
+  box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+/* The default color is the one written as ==…== */
+.vb-panel button.vb-swatch.is-default::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin: 2px auto 0;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.55);
+}
+.vb-panel button.vb-swatch-yellow,
+.vb-panel button.vb-swatch-yellow:hover  { background-color: #fff176; }
+.vb-panel button.vb-swatch-green,
+.vb-panel button.vb-swatch-green:hover   { background-color: #aed581; }
+.vb-panel button.vb-swatch-cyan,
+.vb-panel button.vb-swatch-cyan:hover    { background-color: #80deea; }
+.vb-panel button.vb-swatch-magenta,
+.vb-panel button.vb-swatch-magenta:hover { background-color: #f48fb1; }
+.vb-panel button.vb-swatch-blue,
+.vb-panel button.vb-swatch-blue:hover    { background-color: #90caf9; }
+.vb-panel button.vb-swatch-gray,
+.vb-panel button.vb-swatch-gray:hover    { background-color: #cfd8dc; }
+.vb-panel button.vb-swatch-orange,
+.vb-panel button.vb-swatch-orange:hover  { background-color: #ffb74d; }
+.vb-panel button.vb-swatch:hover {
+  border-color: var(--text-normal);
+}

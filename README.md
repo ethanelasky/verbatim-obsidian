@@ -12,6 +12,12 @@ Add `cssclasses: cardfile` to a note's frontmatter to activate the Verbatim-styl
 2. Copy `manifest.json`, `main.js`, and `styles.css` into `<your vault>/.obsidian/plugins/verbatim/`
 3. Enable **Verbatim** in Settings → Community plugins.
 
+## The panel
+
+Click the scissors in Obsidian's left ribbon (or run **Open Verbatim panel**) to open a sidebar pane that stands in for Verbatim's Word ribbon: every tool as a button, grouped Cutting / Structure / Format / Cites / Automation / Fixers. Click a group header to fold it; the folded set is remembered.
+
+Buttons act on the note you were just editing — clicking one never steals focus, so the selection you made survives the click. The Format group also carries the seven highlight swatches: clicking one sets the current color (and highlights the selection if there is one). The dot marks the default color, the one written as `==…==`. **U-mode** lights up while Underline Mode is on. Each button's tooltip shows its current hotkey, and bare function keys are printed on the button itself.
+
 ## The cutting loop
 
 | Key | Command |

@@ -20,6 +20,8 @@ export interface VbSettings {
   /** "" = use system year */
   pinnedYear: string;
   placeholder: string;
+  /** Panel groups the user has folded away. */
+  collapsedGroups: string[];
 }
 
 export const DEFAULT_SETTINGS: VbSettings = {
@@ -35,6 +37,7 @@ export const DEFAULT_SETTINGS: VbSettings = {
   emphasisMode: "bold",
   pinnedYear: "",
   placeholder: "XX",
+  collapsedGroups: ["Automation", "Fixers"],
 };
 
 export class VbSettingTab extends PluginSettingTab {

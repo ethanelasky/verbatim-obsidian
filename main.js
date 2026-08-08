@@ -23,7 +23,7 @@ __export(main_exports, {
   default: () => VerbatimPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 
 // src/marks.ts
 var HL_COLORS = [
@@ -1190,7 +1190,8 @@ var DEFAULT_SETTINGS = {
   currentHl: "yellow",
   emphasisMode: "bold",
   pinnedYear: "",
-  placeholder: "XX"
+  placeholder: "XX",
+  collapsedGroups: ["Automation", "Fixers"]
 };
 var VbSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
@@ -1286,14 +1287,159 @@ var VbSettingTab = class extends import_obsidian.PluginSettingTab {
   }
 };
 
+// src/panel.ts
+var import_obsidian2 = require("obsidian");
+var VIEW_TYPE_VERBATIM = "verbatim-panel";
+var KEY_GLYPHS = {
+  ArrowUp: "\u2191",
+  ArrowDown: "\u2193",
+  ArrowLeft: "\u2190",
+  ArrowRight: "\u2192",
+  Backspace: "\u232B",
+  Enter: "\u23CE",
+  Escape: "Esc",
+  " ": "Space"
+};
+function formatHotkey(hk) {
+  const mac = import_obsidian2.Platform.isMacOS;
+  const mods = (hk.modifiers ?? []).map((m) => {
+    switch (m) {
+      case "Mod":
+        return mac ? "\u2318" : "Ctrl";
+      case "Meta":
+        return mac ? "\u2318" : "Win";
+      case "Ctrl":
+        return mac ? "\u2303" : "Ctrl";
+      case "Alt":
+        return mac ? "\u2325" : "Alt";
+      case "Shift":
+        return mac ? "\u21E7" : "Shift";
+      default:
+        return String(m);
+    }
+  });
+  const key = KEY_GLYPHS[hk.key] ?? (hk.key.length === 1 ? hk.key.toUpperCase() : hk.key);
+  return mac ? [...mods, key].join("") : [...mods, key].join("+");
+}
+function primaryHotkey(view, a) {
+  const mgr = view.app.hotkeyManager;
+  const id = `verbatim:${a.id}`;
+  const custom = mgr?.getHotkeys?.(id);
+  if (custom?.length) return custom[0];
+  const def = mgr?.getDefaultHotkeys?.(id);
+  if (def?.length) return def[0];
+  return a.hotkeys?.[0];
+}
+var VerbatimPanelView = class extends import_obsidian2.ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.plugin = plugin;
+  }
+  getViewType() {
+    return VIEW_TYPE_VERBATIM;
+  }
+  getDisplayText() {
+    return "Verbatim";
+  }
+  getIcon() {
+    return "scissors";
+  }
+  async onOpen() {
+    this.render();
+  }
+  async onClose() {
+    this.contentEl.empty();
+  }
+  /** Called by the plugin whenever state the panel displays changes. */
+  refresh() {
+    this.render();
+  }
+  render() {
+    const el = this.contentEl;
+    el.empty();
+    el.addClass("vb-panel");
+    for (const g of this.plugin.groups) this.renderGroup(el, g);
+  }
+  renderGroup(parent, g) {
+    if (!g.items.length && !g.extras) return;
+    const collapsed = this.plugin.settings.collapsedGroups.includes(g.title);
+    const sec = parent.createDiv({ cls: "vb-group" });
+    const head = sec.createDiv({ cls: "vb-group-head" });
+    head.createSpan({ cls: "vb-group-caret", text: collapsed ? "\u25B8" : "\u25BE" });
+    head.createSpan({ cls: "vb-group-title", text: g.title });
+    head.addEventListener("click", () => void this.plugin.toggleGroup(g.title));
+    if (collapsed) return;
+    const body = sec.createDiv({ cls: "vb-group-body" });
+    for (const a of g.items) this.renderButton(body, a);
+    if (g.extras) g.extras(sec.createDiv({ cls: "vb-group-extras" }));
+  }
+  renderButton(parent, a) {
+    const btn = parent.createEl("button", { cls: "vb-btn" });
+    if (a.isActive?.()) btn.addClass("is-active");
+    btn.createSpan({ cls: "vb-btn-label", text: a.label });
+    const hk = primaryHotkey(this, a);
+    const hint = hk ? formatHotkey(hk) : "";
+    if (hk && !hk.modifiers?.length) btn.createSpan({ cls: "vb-btn-key", text: hint });
+    const tip = hint ? `${a.name} \u2014 ${hint}` : a.name;
+    btn.setAttribute("title", tip);
+    btn.setAttribute("aria-label", tip);
+    btn.addEventListener("mousedown", (e) => e.preventDefault());
+    btn.addEventListener("click", () => this.plugin.runAction(a));
+  }
+};
+
 // src/main.ts
+var PANEL_LABELS = {
+  "paste-text": "Paste text",
+  condense: "Condense",
+  "condense-pilcrows": "Condense \xB6",
+  "condense-no-pilcrows": "Condense no \xB6",
+  uncondense: "Uncondense",
+  shrink: "Shrink",
+  "shrink-all": "Shrink doc",
+  "unshrink-all": "Unshrink doc",
+  pocket: "Pocket",
+  hat: "Hat",
+  block: "Block",
+  tag: "Tag",
+  "move-heading-up": "Move \u2191",
+  "move-heading-down": "Move \u2193",
+  "move-heading-bottom": "To bottom",
+  "select-heading": "Select",
+  "delete-heading": "Delete",
+  underline: "Underline",
+  emphasis: "Emphasis",
+  highlight: "Highlight",
+  "clear-formatting": "Clear",
+  "underline-mode": "U-mode",
+  "set-highlight-color": "Color\u2026",
+  "auto-format-cite": "Cite",
+  "cite-from-url": "From URL",
+  "duplicate-cite": "Duplicate",
+  "reformat-all-cites": "Reformat all",
+  "auto-emphasize-first": "Emph. first letters",
+  "standardize-highlighting": "Standardize hl",
+  "standardize-highlighting-exception": "Standardize (exc.)",
+  "auto-number-tags": "Number tags",
+  "de-number-tags": "De-number",
+  "fix-fake-tags": "Fake tags",
+  "fix-formatting-gaps": "Formatting gaps",
+  "convert-default-styles": "Default styles",
+  "remove-blanks": "Blanks",
+  "remove-pilcrows": "Pilcrows",
+  "remove-hyperlinks": "Hyperlinks",
+  "remove-emphasis": "Emphasis\u2192underline",
+  "remove-non-highlighted-underlining": "Stray underlining",
+  "select-similar": "Select similar"
+};
+var PANEL_GROUPS = ["Cutting", "Structure", "Format", "Cites", "Automation", "Fixers"];
 function selOffsets(ed) {
   return [
     ed.posToOffset(ed.getCursor("from")),
     ed.posToOffset(ed.getCursor("to"))
   ];
 }
-var CiteUrlModal = class extends import_obsidian2.Modal {
+var CiteUrlModal = class extends import_obsidian3.Modal {
   constructor(app, initial, onSubmit) {
     super(app);
     this.initial = initial;
@@ -1325,7 +1471,7 @@ var CiteUrlModal = class extends import_obsidian2.Modal {
     this.contentEl.empty();
   }
 };
-var HlColorModal = class extends import_obsidian2.FuzzySuggestModal {
+var HlColorModal = class extends import_obsidian3.FuzzySuggestModal {
   constructor(app, plugin) {
     super(app);
     this.plugin = plugin;
@@ -1340,16 +1486,20 @@ var HlColorModal = class extends import_obsidian2.FuzzySuggestModal {
   onChooseItem(c) {
     this.plugin.settings.currentHl = c;
     void this.plugin.saveSettings();
-    new import_obsidian2.Notice(`Highlight color: ${c}`);
+    new import_obsidian3.Notice(`Highlight color: ${c}`);
   }
 };
-var VerbatimPlugin = class extends import_obsidian2.Plugin {
+var VerbatimPlugin = class extends import_obsidian3.Plugin {
   constructor() {
     super(...arguments);
     this.settings = { ...DEFAULT_SETTINGS };
+    /** Tool groups, shared by the command palette and the panel. */
+    this.groups = [];
     this.underlineMode = false;
     this.applyingUnderline = false;
     this.statusEl = null;
+    /** Last markdown view seen, so panel clicks still find an editor. */
+    this.lastMd = null;
   }
   async onload() {
     await this.loadSettings();
@@ -1358,10 +1508,102 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     this.updateStatus();
     this.applyAppearance();
     this.registerCommands();
+    this.registerView(
+      VIEW_TYPE_VERBATIM,
+      (leaf) => new VerbatimPanelView(leaf, this)
+    );
+    this.addRibbonIcon("scissors", "Verbatim panel", () => void this.activatePanel());
+    this.addCommand({
+      id: "open-panel",
+      name: "Open Verbatim panel",
+      callback: () => void this.activatePanel()
+    });
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view instanceof import_obsidian3.MarkdownView) this.lastMd = leaf.view;
+      })
+    );
     this.registerDomEvent(document, "mouseup", () => this.maybeUnderlineSelection());
     this.registerDomEvent(document, "keyup", (e) => {
       if (e.key === "Shift") this.maybeUnderlineSelection();
     });
+  }
+  /** Reveal the panel in the right sidebar, creating it if needed. */
+  async activatePanel() {
+    const { workspace } = this.app;
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_VERBATIM);
+    if (existing.length) {
+      await workspace.revealLeaf(existing[0]);
+      return;
+    }
+    const leaf = workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: VIEW_TYPE_VERBATIM, active: true });
+    await workspace.revealLeaf(leaf);
+  }
+  refreshPanel() {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE_VERBATIM)) {
+      if (leaf.view instanceof VerbatimPanelView) leaf.view.refresh();
+    }
+  }
+  async toggleGroup(title) {
+    const list = this.settings.collapsedGroups;
+    const i = list.indexOf(title);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(title);
+    await this.saveSettings();
+    this.refreshPanel();
+  }
+  /**
+   * The editor a panel click should act on. Buttons suppress focus changes, so
+   * the active view is normally still the note; the fallbacks cover the case
+   * where focus genuinely sat elsewhere (e.g. after using the file explorer).
+   */
+  targetEditor() {
+    const active = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
+    if (active) {
+      this.lastMd = active;
+      return active.editor;
+    }
+    const last = this.lastMd;
+    if (last && this.app.workspace.getLeavesOfType("markdown").includes(last.leaf)) {
+      return last.editor;
+    }
+    const recent = this.app.workspace.getMostRecentLeaf();
+    if (recent?.view instanceof import_obsidian3.MarkdownView) {
+      this.lastMd = recent.view;
+      return recent.view.editor;
+    }
+    return null;
+  }
+  /** Run a panel button's action against the current note. */
+  runAction(a) {
+    const ed = this.targetEditor();
+    if (!ed) {
+      new import_obsidian3.Notice("Open a note to use Verbatim");
+      return;
+    }
+    void Promise.resolve(a.run(ed)).then(() => this.refreshPanel());
+  }
+  /** Highlight color swatches for the panel's Format group. */
+  renderHlSwatches(el) {
+    const row = el.createDiv({ cls: "vb-swatches" });
+    for (const c of HL_COLORS) {
+      const sw = row.createEl("button", { cls: `vb-swatch vb-swatch-${c}` });
+      if (c === this.settings.currentHl) sw.addClass("is-current");
+      if (c === this.settings.defaultHl) sw.addClass("is-default");
+      const tip = `${c[0].toUpperCase()}${c.slice(1)} \u2014 set current color` + (c === this.settings.defaultHl ? " (default, written as ==\u2026==)" : "") + "; highlights the selection";
+      sw.setAttribute("title", tip);
+      sw.setAttribute("aria-label", tip);
+      sw.addEventListener("mousedown", (e) => e.preventDefault());
+      sw.addEventListener("click", () => {
+        this.settings.currentHl = c;
+        void this.saveSettings();
+        const ed = this.targetEditor();
+        if (ed?.somethingSelected()) this.runInline(ed, "highlight", true);
+        this.refreshPanel();
+      });
+    }
   }
   onunload() {
     const body = document.body;
@@ -1383,6 +1625,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     if (this.settings.emphasisMode === "box") body.classList.add("vb-emphasis-box");
     if (this.settings.emphasisMode === "large") body.classList.add("vb-emphasis-large");
     body.style.setProperty("--vb-shrink-scale", String(this.settings.shrinkFactor / 100));
+    this.refreshPanel();
   }
   currentYear() {
     const pinned = parseInt(this.settings.pinnedYear, 10);
@@ -1392,6 +1635,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     if (!this.statusEl) return;
     this.statusEl.setText(this.underlineMode ? "U-mode" : "");
     this.statusEl.toggleClass("vb-underline-mode-status", this.underlineMode);
+    this.refreshPanel();
   }
   /** Replace the minimal differing region so cursor/scroll/undo stay sane. */
   applyNewText(ed, oldT, newT, sel) {
@@ -1436,11 +1680,11 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       if (res.text !== slice) {
         this.applyNewText(ed, text, text.slice(0, ls) + res.text + text.slice(le), null);
       }
-      new import_obsidian2.Notice(`${label}: ${res.count} change(s) in selection`);
+      new import_obsidian3.Notice(`${label}: ${res.count} change(s) in selection`);
     } else {
       const res = fn(text);
       if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-      new import_obsidian2.Notice(`${label}: ${res.count} change(s)`);
+      new import_obsidian3.Notice(`${label}: ${res.count} change(s)`);
     }
   }
   runInline(ed, op, force = false) {
@@ -1457,7 +1701,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
   }
   maybeUnderlineSelection() {
     if (!this.underlineMode || this.applyingUnderline) return;
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
     const ed = view?.editor;
     if (!ed || !ed.somethingSelected()) return;
     this.applyingUnderline = true;
@@ -1470,9 +1714,18 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     }
   }
   registerCommands() {
-    const cmd = (id, name, cb, hotkeys) => {
+    this.groups = PANEL_GROUPS.map((title) => ({ title, items: [] }));
+    let cur = this.groups[0];
+    const group = (title) => {
+      cur = this.groups.find((g) => g.title === title) ?? cur;
+    };
+    const cmd = (id, name, cb, hotkeys, isActive) => {
+      cur.items.push({ id, name, label: PANEL_LABELS[id] ?? name, hotkeys, isActive, run: cb });
       this.addCommand({ id, name, hotkeys, editorCallback: (ed) => void cb(ed) });
     };
+    const fmt = this.groups.find((g) => g.title === "Format");
+    if (fmt) fmt.extras = (el) => this.renderHlSwatches(el);
+    group("Structure");
     const heading = (level) => (ed) => {
       const text = ed.getValue();
       const [f, t] = selOffsets(ed);
@@ -1532,6 +1785,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       },
       [{ modifiers: ["Mod", "Alt"], key: "Backspace" }]
     );
+    group("Cutting");
     cmd(
       "paste-text",
       "Paste text (unformatted)",
@@ -1540,11 +1794,11 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         try {
           clip = await navigator.clipboard.readText();
         } catch {
-          new import_obsidian2.Notice("Could not read the clipboard");
+          new import_obsidian3.Notice("Could not read the clipboard");
           return;
         }
         if (!clip) {
-          new import_obsidian2.Notice("Clipboard is empty");
+          new import_obsidian3.Notice("Clipboard is empty");
           return;
         }
         let s = plainizePaste(clip);
@@ -1565,7 +1819,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       const res = condenseRange(text, scope.from, scope.to, mode ?? this.settings.condenseMode);
       if (res.text !== text) {
         this.applyNewText(ed, text, res.text, null);
-        if (scope.kind === "document") new import_obsidian2.Notice(`Condensed ${res.count} chunk(s)`);
+        if (scope.kind === "document") new import_obsidian3.Notice(`Condensed ${res.count} chunk(s)`);
       }
     };
     cmd("condense", "Condense", condense(), [
@@ -1588,7 +1842,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const res = uncondenseRange(text, scope.from, scope.to);
         if (res.count > 0) {
           this.applyNewText(ed, text, res.text, null);
-          if (scope.kind === "document") new import_obsidian2.Notice(`Restored ${res.count} paragraph break(s)`);
+          if (scope.kind === "document") new import_obsidian3.Notice(`Restored ${res.count} paragraph break(s)`);
         }
       },
       [{ modifiers: ["Mod", "Alt", "Shift"], key: "F3" }]
@@ -1610,6 +1864,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
     ]);
     cmd("shrink-all", "Shrink all cards in document", shrink("shrink", true));
     cmd("unshrink-all", "Unshrink all cards in document", shrink("unshrink", true));
+    group("Format");
     cmd("underline", "Underline", (ed) => this.runInline(ed, "underline"), [
       { modifiers: [], key: "F9" },
       { modifiers: ["Mod", "Alt"], key: "9" }
@@ -1632,12 +1887,15 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       () => {
         this.underlineMode = !this.underlineMode;
         this.updateStatus();
-        new import_obsidian2.Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
-      }
+        new import_obsidian3.Notice(`Underline mode ${this.underlineMode ? "on" : "off"}`);
+      },
+      void 0,
+      () => this.underlineMode
     );
     cmd("set-highlight-color", "Set highlight color", () => {
       new HlColorModal(this.app, this).open();
     });
+    group("Cites");
     cmd(
       "auto-format-cite",
       "Cite (style selection / auto format)",
@@ -1651,7 +1909,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const [f] = selOffsets(ed);
         const card = cardAt(text, f);
         if (!card) {
-          new import_obsidian2.Notice("Cursor is not in a card");
+          new import_obsidian3.Notice("Cursor is not in a card");
           return;
         }
         let cs = card.citeStart;
@@ -1669,17 +1927,17 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
           }
         }
         if (cs === null || ce === null) {
-          new import_obsidian2.Notice("No cite line found under this tag");
+          new import_obsidian3.Notice("No cite line found under this tag");
           return;
         }
         const raw = text.slice(cs, ce);
-        const fmt = formatCiteLine(raw, this.currentYear());
-        if (fmt === null) {
-          new import_obsidian2.Notice("Couldn't auto-parse this cite \u2014 select the name or date and press F8 to style it manually");
+        const fmt2 = formatCiteLine(raw, this.currentYear());
+        if (fmt2 === null) {
+          new import_obsidian3.Notice("Couldn't auto-parse this cite \u2014 select the name or date and press F8 to style it manually");
           return;
         }
-        if (fmt !== raw) {
-          this.applyNewText(ed, text, text.slice(0, cs) + fmt + text.slice(ce), null);
+        if (fmt2 !== raw) {
+          this.applyNewText(ed, text, text.slice(0, cs) + fmt2 + text.slice(ce), null);
         }
       },
       [
@@ -1697,11 +1955,11 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         if (res.text !== slice) {
           this.applyNewText(ed, text, text.slice(0, ls) + res.text + text.slice(le), null);
         }
-        new import_obsidian2.Notice(`Cites: ${res.formatted} formatted in selection`);
+        new import_obsidian3.Notice(`Cites: ${res.formatted} formatted in selection`);
       } else {
         const res = reformatAllCites(text, this.currentYear());
         if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-        new import_obsidian2.Notice(`Cites: ${res.formatted} formatted, ${res.skipped} skipped`);
+        new import_obsidian3.Notice(`Cites: ${res.formatted} formatted, ${res.skipped} skipped`);
       }
     });
     cmd(
@@ -1712,7 +1970,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const [f] = selOffsets(ed);
         const cite = previousCiteLine(text, f);
         if (!cite) {
-          new import_obsidian2.Notice("No previous cite found");
+          new import_obsidian3.Notice("No previous cite found");
           return;
         }
         ed.replaceSelection(cite);
@@ -1732,12 +1990,12 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         new CiteUrlModal(this.app, initial, async (url) => {
           if (!url) return;
           if (!/^https?:\/\//.test(url)) {
-            new import_obsidian2.Notice("Not an http(s) URL");
+            new import_obsidian3.Notice("Not an http(s) URL");
             return;
           }
-          const working = new import_obsidian2.Notice("Fetching cite\u2026", 0);
+          const working = new import_obsidian3.Notice("Fetching cite\u2026", 0);
           try {
-            const resp = await (0, import_obsidian2.requestUrl)({
+            const resp = await (0, import_obsidian3.requestUrl)({
               url,
               headers: {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
@@ -1748,7 +2006,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
             const formatted = formatCiteLine(line, this.currentYear()) ?? line;
             ed.replaceSelection(formatted);
           } catch (e) {
-            new import_obsidian2.Notice(`Fetch failed: ${e instanceof Error ? e.message : String(e)}`);
+            new import_obsidian3.Notice(`Fetch failed: ${e instanceof Error ? e.message : String(e)}`);
           } finally {
             working.hide();
           }
@@ -1756,6 +2014,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       },
       [{ modifiers: ["Alt"], key: "F2" }]
     );
+    group("Automation");
     cmd(
       "auto-emphasize-first",
       "Auto-emphasize first letters",
@@ -1763,7 +2022,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const text = ed.getValue();
         const [f, t] = selOffsets(ed);
         if (t <= f) {
-          new import_obsidian2.Notice("Select the words to emphasize");
+          new import_obsidian3.Notice("Select the words to emphasize");
           return;
         }
         const res = autoEmphasizeFirst(text, f, t, this.settings.defaultHl);
@@ -1806,12 +2065,13 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
       }
       const res = number ? autoNumberTags(text, range[0], range[1]) : deNumberTags(text, range[0], range[1]);
       if (res.text !== text) this.applyNewText(ed, text, res.text, null);
-      new import_obsidian2.Notice(`${number ? "Numbered" : "De-numbered"} ${res.count} tag(s)`);
+      new import_obsidian3.Notice(`${number ? "Numbered" : "De-numbered"} ${res.count} tag(s)`);
     };
     cmd("auto-number-tags", "Auto number tags", numberCmd(true), [
       { modifiers: ["Mod", "Shift"], key: "3" }
     ]);
     cmd("de-number-tags", "De-number tags", numberCmd(false));
+    group("Fixers");
     const fix = (label, fn) => (ed) => this.runScopedTool(ed, label, fn);
     const hl = () => this.settings.defaultHl;
     cmd("fix-fake-tags", "Fix fake tags", fix("Fix fake tags", (t) => fixFakeTags(t, hl())));
@@ -1851,7 +2111,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
         const [f] = selOffsets(ed);
         const ranges = similarRanges(text, f, this.settings.defaultHl);
         if (!ranges) {
-          new import_obsidian2.Notice("Nothing similar to select");
+          new import_obsidian3.Notice("Nothing similar to select");
           return;
         }
         ed.setSelections(
@@ -1860,7 +2120,7 @@ var VerbatimPlugin = class extends import_obsidian2.Plugin {
             head: ed.offsetToPos(b)
           }))
         );
-        new import_obsidian2.Notice(`${ranges.length} selection(s)`);
+        new import_obsidian3.Notice(`${ranges.length} selection(s)`);
       },
       [{ modifiers: ["Mod"], key: "F2" }]
     );
